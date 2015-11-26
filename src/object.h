@@ -16,9 +16,28 @@ typedef enum
 typedef struct object
 {
     object_type type;
+    char        used;
+    char        marked;
 
     union
     {
+        struct 
+        {
+            long value;
+        } fixnum;
+
+        struct
+        {
+            int value;
+        } character;
     } data;
 } object;
+
+object *make_fixnum(long num);
+char is_fixnum_object(object *obj);
+long get_fixnum_value(object *obj);
+
+object *make_character(int c);
+char is_character_object(object *obj);
+int get_character_value(object *obj);
 

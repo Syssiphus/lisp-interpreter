@@ -12,5 +12,6 @@ legacy_scheme
 
 scheme.exe
 legacy_scheme.exe
+*.stackdump
 
 ._*

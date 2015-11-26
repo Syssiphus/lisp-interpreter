@@ -3,8 +3,13 @@
 #include <ctype.h>
 
 #include "read.h"
+#include "object.h"
 
 void skip_whitespace(FILE *in);
+char is_delimiter(int c);
+int peek(FILE *in);
+char read_character(FILE *in);
+void eat_string(FILE *in, char *str);
 
 /**
  * Reads a stream and creates an object.
@@ -12,15 +17,31 @@ void skip_whitespace(FILE *in);
 object *read(FILE *in)
 {
     int c;
-    short sign = 1;
 
     skip_whitespace(in);
 
     c = getc(in);
 
-    if (isdigit(c) || (c == '-' && (isdigit(peek(in)))))
+    if (c == '#')
+    {
+        /* A character value */
+        if ((c = getc(in)) == '\\')
+        {
+            return make_character(read_character(in));
+        }
+        else
+        {
+            fprintf(stderr, "%s, %d: Syntax error, expected '\\' "
+                    "character '%s'\n", __FILE__, __LINE__, __func__);
+            exit(1);
+        }
+    }
+    else if (isdigit(c) || (c == '-' && (isdigit(peek(in)))))
     {
         /* Numbers, TODO: implement more than fixnums*/
+        short sign = 1;
+        long num = 0;
+
         if (c == '-')
         {
             sign = -1; /* Number is negative */
@@ -75,6 +96,83 @@ void skip_whitespace(FILE *in)
 
         ungetc(c, in);
         break;
+    }
+}
+
+/**
+ * Peek into the stream and return the character which comes next.
+ */
+int peek(FILE *in)
+{
+    int c;
+
+    c = getc(in);
+    ungetc(c, in);
+
+    return c;
+}
+
+/**
+ * Is it a delimiter?
+ */
+char is_delimiter(int c)
+{
+    return isspace(c) || c == '(' || c == ')'
+        || c == EOF || c == '"' || c == ';';
+}
+
+/**
+ * Read a scheme character value from the stream.
+ * This includes the keywords 'space' and 'newline' which are mapped to
+ * ' ' and '\n' respectively.
+ */
+char read_character(FILE *in)
+{
+    char c;
+    c = getc(in);
+
+    if (c == 's')
+    {
+        if (peek(in) == 'p')
+        {
+            eat_string(in, "pace");
+            c = ' ';
+        }
+    }
+    else if (c == 'n')
+    {
+        if (peek(in) == 'e')
+        {
+            eat_string(in, "ewline");
+            c = '\n';
+        }
+    }
+
+    if(! is_delimiter(peek(in)))
+    {
+        fprintf(stderr, "Missing delimiter.\n");
+        exit(1);
+    }
+
+    return c;
+}
+
+/**
+ * Eat a string value from the stream.
+ */
+void eat_string(FILE *in, char *str)
+{
+    int c;
+
+    while (*str != '\0')
+    {
+        if ((c = getc(in)) != *str)
+        {
+            fprintf(stderr, "%s, %d: Unexpected character '%c' in '%s'.\n",
+                    __FILE__, __LINE__, c, __func__);
+            exit(1);
+        }
+        ++str;
     }
 }
 

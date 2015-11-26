@@ -1,8 +1,28 @@
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "eval.h"
+
+char is_self_evaluating(object *obj);
 
 object *eval(object *expr, object *env)
 {
-    return 0; /* TODO: implement me */
+    if (is_self_evaluating(expr))
+    {
+        return expr;
+    }
+
+    fprintf(stderr, "%s, %d: Unknown object type '%s'\n", 
+            __FILE__, __LINE__, __func__);
+    exit(1); /* TODO: Error handling */
 }
+
+char is_self_evaluating(object *obj)
+{
+    return is_fixnum_object(obj)
+        || is_character_object(obj);
+}
+
+
 

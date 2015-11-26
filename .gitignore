@@ -1,0 +1,16 @@
+
+*.o
+
+*.swp
+*.swo
+
+tags
+TAGS
+
+scheme
+legacy_scheme
+
+scheme.exe
+legacy_scheme.exe
+
+._*

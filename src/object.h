@@ -30,6 +30,11 @@ typedef struct object
         {
             int value;
         } character;
+
+        struct
+        {
+            char *value;
+        } string;
     } data;
 } object;
 
@@ -40,4 +45,8 @@ long get_fixnum_value(object *obj);
 object *make_character(int c);
 char is_character_object(object *obj);
 int get_character_value(object *obj);
+
+object *make_string(char *str);
+char is_string_object(object *obj);
+char *get_string_value(object *obj);
 

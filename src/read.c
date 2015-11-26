@@ -4,12 +4,14 @@
 
 #include "read.h"
 #include "object.h"
+#include "memory.h"
 
 void skip_whitespace(FILE *in);
 char is_delimiter(int c);
 int peek(FILE *in);
 char read_character(FILE *in);
 void eat_string(FILE *in, char *str);
+char *read_string(FILE *in);
 
 /**
  * Reads a stream and creates an object.
@@ -68,6 +70,13 @@ object *read(FILE *in)
             fprintf(stderr, "Number not followed by delimiter\n");
             exit(1); /* TODO: Error handling */
         }
+    }
+    else if (c == '"')
+    {
+        char   *str = read_string(in);
+        object *obj = make_string(str);
+        free(str);
+        return obj;
     }
 
     fprintf(stderr, "%s, %d: Illegal state in '%s'", 
@@ -174,5 +183,38 @@ void eat_string(FILE *in, char *str)
         }
         ++str;
     }
+}
+
+/**
+ * Read a string value from the stream.
+ */
+char *read_string(FILE *in)
+{
+    int c, count = 0;
+    string_buffer retval;
+    retval = alloc_temp_string_buffer();
+
+    while ((c = getc(in)) != '"')
+    {
+        if (count == retval.size)
+        {
+            realloc_temp_string_buffer(&retval);
+        }
+        retval.buffer[count++] = c;
+    }
+
+    if ( ! is_delimiter(peek(in)))
+    {
+        fprintf(stderr, "Missing delimiter after string.\n");
+        exit(1);
+    }
+
+    if (count == retval.size)
+    {
+        realloc_temp_string_buffer(&retval);
+    }
+    retval.buffer[count] = '\0';
+
+    return retval.buffer;
 }
 

@@ -26,6 +26,10 @@ void write(FILE *out, object * obj)
                 break;
         }
     }
+    else if (is_string_object(obj))
+    {
+        fprintf(out, "\"%s\"", get_string_value(obj));
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknow object '%s'\n",

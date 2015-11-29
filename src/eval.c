@@ -22,7 +22,8 @@ char is_self_evaluating(object *obj)
 {
     return is_fixnum_object(obj)
         || is_character_object(obj)
-        || is_string_object(obj);
+        || is_string_object(obj)
+        || is_boolean_object(obj);
 }
 
 

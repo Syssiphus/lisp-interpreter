@@ -30,6 +30,10 @@ void write(FILE *out, object * obj)
     {
         fprintf(out, "\"%s\"", get_string_value(obj));
     }
+    else if (is_boolean_object(obj))
+    {
+        fprintf(out, "#%c", is_false(obj) ? 'f' : 't');
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknow object '%s'\n",

@@ -3,6 +3,7 @@
 #include <ctype.h>
 
 #include "read.h"
+#include "globals.h"
 #include "object.h"
 #include "memory.h"
 
@@ -27,15 +28,17 @@ object *read(FILE *in)
     if (c == '#')
     {
         /* A character value */
-        if ((c = getc(in)) == '\\')
+        c = getc(in);
+
+        switch (c)
         {
-            return make_character(read_character(in));
-        }
-        else
-        {
-            fprintf(stderr, "%s, %d: Syntax error, expected '\\' "
-                    "character '%s'\n", __FILE__, __LINE__, __func__);
-            exit(1);
+            case '\\': return make_character(read_character(in));
+            case 't': return true;
+            case 'f': return false;
+            default:
+                fprintf(stderr, "%s, %d: Syntax error, illegal character '%c' "
+                        "\n", __FILE__, __LINE__, c);
+                exit(1);
         }
     }
     else if (isdigit(c) || (c == '-' && (isdigit(peek(in)))))
@@ -75,8 +78,14 @@ object *read(FILE *in)
     {
         char   *str = read_string(in);
         object *obj = make_string(str);
-        free(str);
+        free(str); /* Get's allocated in read_string(), 
+                      needs to be freed here */
         return obj;
+    }
+    else
+    {
+        fprintf(stderr, "%s, %d: Couldn't parse input.\n", __FILE__, __LINE__);
+        return false;
     }
 
     fprintf(stderr, "%s, %d: Illegal state in '%s'", 
@@ -190,17 +199,61 @@ void eat_string(FILE *in, char *str)
  */
 char *read_string(FILE *in)
 {
+#define STRING_BLOCK_SIZE 128
     int c, count = 0;
-    string_buffer retval;
-    retval = alloc_temp_string_buffer();
+    char *buffer;
+    size_t buffer_size = STRING_BLOCK_SIZE;
+
+    buffer = malloc(STRING_BLOCK_SIZE);
+
+    if (buffer == NULL)
+    {
+        fprintf(stderr, "Out of memory.\n");
+        exit(1);
+    }
 
     while ((c = getc(in)) != '"')
     {
-        if (count == retval.size)
+        if (count == buffer_size - 1)
         {
-            realloc_temp_string_buffer(&retval);
+            buffer_size += STRING_BLOCK_SIZE;
+            buffer = realloc(buffer, buffer_size);
+            if (buffer == NULL)
+            {
+                fprintf(stderr, "Out of memory.\n");
+                exit(1);
+            }
         }
-        retval.buffer[count++] = c;
+
+        if (c == '\\')
+        {
+            int cc = peek(in);
+            switch (cc)
+            {
+                case '"':
+                    /* Escaped double quote */
+                    c = getc(in);
+                    break;
+                case 'n':
+                    /* Newline */
+                    cc = getc(in);
+                    c = '\n';
+                    break;
+                case 't':
+                    /* Tab character */
+                    cc = getc(in);
+                    c = '\t';
+                    break;
+                case '\\':
+                    c = getc(in);
+                    break;
+                default:
+                    fprintf(stderr, "Unknown escaped character '%c'\n", cc);
+                    exit(1);
+            }
+        }
+
+        buffer[count++] = c;
     }
 
     if ( ! is_delimiter(peek(in)))
@@ -209,12 +262,7 @@ char *read_string(FILE *in)
         exit(1);
     }
 
-    if (count == retval.size)
-    {
-        realloc_temp_string_buffer(&retval);
-    }
-    retval.buffer[count] = '\0';
-
-    return retval.buffer;
+    buffer[count] = '\0';
+    return buffer;
 }
 

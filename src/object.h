@@ -35,6 +35,11 @@ typedef struct object
         {
             char *value;
         } string;
+
+        struct
+        {
+            int value;
+        } boolean;
     } data;
 } object;
 
@@ -49,4 +54,8 @@ int get_character_value(object *obj);
 object *make_string(char *str);
 char is_string_object(object *obj);
 char *get_string_value(object *obj);
+
+char is_boolean_object(object *obj);
+char is_false(object *obj);
+char is_true(object *obj);
 

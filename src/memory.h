@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 #include "object.h"
 
 #define MEMORY_POOL_SIZE 50000
@@ -16,7 +18,5 @@ typedef struct
 void init_memory_pool(void);
 object *alloc_object(void);
 
-string_buffer alloc_temp_string_buffer(void);
-void realloc_temp_string_buffer(string_buffer *strbf);
 
 

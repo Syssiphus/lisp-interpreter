@@ -88,3 +88,25 @@ char *get_string_value(object *obj)
     return obj->data.string.value;
 }
 
+/* Booleans */
+char is_boolean_object(object *obj)
+{
+    return obj->type == BOOLEAN;
+}
+
+char is_false(object *obj)
+{
+    if ( ! is_boolean_object(obj))
+    {
+        fprintf(stderr, "Not a boolean value.\n");
+        exit(1);
+    }
+
+    return obj->data.boolean.value == 0;
+}
+
+char is_true(object *obj)
+{
+    return ( ! is_false(obj));
+}
+

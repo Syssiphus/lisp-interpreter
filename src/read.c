@@ -303,22 +303,13 @@ char parse_symbol(parser_t *p)
 
 char parse_boolean(parser_t *p)
 {
-    int c = getc(p->stream);
-    if (c != '#')
+    if (char_of(p, '#') && (char_of(p, 't') || char_of(p, 'f'))
+            && follows_one_of(p, is_delimiter))
     {
-        ungetc(c, p->stream);
-        return 0;
-    }
-
-    c = getc(p->stream);
-    if ((c == 't' || c == 'f') && is_delimiter(peek(p->stream)))
-    {
-        p->buffer[p->buffer_pos++] = c;
         return 1;
     }
 
-    ungetc(c, p->stream);
-    ungetc('#', p->stream);
+    parser_rollback(p);
     return 0;
 }
 

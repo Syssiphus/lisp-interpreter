@@ -15,7 +15,7 @@ SOURCES = src/scheme.c src/init.c src/eval.c src/read.c src/write.c \
 CXX_SOURCES = 
 OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 
-LEGACY_SOURCES = src/main.c
+LEGACY_SOURCES = legacy_src/main.c
 LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
 ifeq ($(DBG), 1)

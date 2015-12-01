@@ -110,3 +110,39 @@ char is_true(object *obj)
     return ( ! is_false(obj));
 }
 
+/* Symbols */
+object *make_symbol(char *str)
+{
+    object *obj;
+
+    obj = alloc_object();
+
+    obj->data.symbol.value = malloc(strlen(str) + 1);
+    if ( ! obj->data.symbol.value)
+    {
+        fprintf(stderr, "Error allocating string space for symbol string "
+                "'%s'.", str);
+        exit(1);
+    }
+    strcpy(obj->data.symbol.value, str);
+    obj->type = SYMBOL;
+    return obj;
+}
+
+char is_symbol_object(object *obj)
+{
+    return obj->type == SYMBOL;
+}
+
+char *get_symbol_value(object *obj)
+{
+    if ( ! is_symbol_object(obj))
+    {
+        fprintf(stderr, "Not a symbol object.\n");
+        exit(1);
+    }
+
+    return obj->data.symbol.value;
+}
+
+

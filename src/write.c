@@ -34,6 +34,10 @@ void write(FILE *out, object * obj)
     {
         fprintf(out, "#%c", is_false(obj) ? 'f' : 't');
     }
+    else if (is_symbol_object(obj))
+    {
+        fprintf(out, "%s", get_symbol_value(obj));
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknow object '%s'\n",

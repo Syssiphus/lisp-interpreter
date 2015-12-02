@@ -26,7 +26,11 @@ char is_self_evaluating(object *obj)
         || is_string_object(obj)
         || is_boolean_object(obj)
         
-        || is_symbol_object(obj) /* FIXME: this has to be changed! */;
+        || is_symbol_object(obj) /* FIXME: this has to be changed! */
+        || is_pair_object(obj) /* FIXME: this has to be changed! */
+        || is_the_empty_list(obj)
+        || is_error_object(obj)
+        ;
 }
 
 

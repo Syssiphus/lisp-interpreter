@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <errno.h>
 
 #include "read.h"
 #include "globals.h"
 #include "object.h"
 #include "memory.h"
+#include "builtins.h"
 
 typedef struct
 {
@@ -24,11 +26,13 @@ void eat_whitespace(FILE *in);
 
 void parser_rollback(parser_t *p);
 
-char maybe_one_of(parser_t *p, func_t func);
 char many_of(parser_t *p, func_t func);
+char maybe_many_of(parser_t *p, func_t func);
 char one_of(parser_t *p, func_t func);
+char maybe_one_of(parser_t *p, func_t func);
 char char_of(parser_t *p, const char c);
 char follows_one_of(parser_t *p, func_t func);
+char follows_char_of(parser_t *p, const char c);
 
 int is_delimiter(int c);
 int is_sign(int c);
@@ -37,17 +41,22 @@ int is_subsequent(int c);
 int is_initial(int c);
 int is_special_subsequent(int c);
 
-char parse_symbol(parser_t *p);
-char parse_boolean(parser_t *p);
-char parse_integer(parser_t *p);
-char parse_character(parser_t *p);
-char parse_string(parser_t *p);
+object *parse_symbol(parser_t *p);
+object *parse_boolean(parser_t *p);
+object *parse_integer(parser_t *p);
+object *parse_character(parser_t *p);
+object *parse_string(parser_t *p);
+object *parse_pair(parser_t *p);
+object *read_pair(parser_t *p);
+
+object *return_error(parser_t *p);
 
 /**
  * Reads a stream and creates an object.
  */
 object *read(FILE *in)
 {
+    object *retval;
     parser_t p;
     p.stream = in;
     memset(p.buffer, 0x00, sizeof(p.buffer));
@@ -55,33 +64,26 @@ object *read(FILE *in)
 
     eat_whitespace(in);
 
-    if (parse_symbol(&p))
-    {
-        return make_symbol(p.buffer);
-    }
-    else if (parse_boolean(&p))
-    {
-        if (p.buffer[p.buffer_pos - 1] == 't')
-        {
-            return true;
-        }
-        return false;
-    }
-    else if (parse_integer(&p))
-    {
-        return make_fixnum(atol(p.buffer));
-    }
-    else if (parse_character(&p))
-    {
-        return make_character(p.buffer[p.buffer_pos - 1]);
-    }
-    else if (parse_string(&p))
-    {
-        return make_string(p.buffer);
-    }
+    (retval = parse_symbol(&p))
+        || (retval = parse_boolean(&p))
+        || (retval = parse_integer(&p))
+        || (retval = parse_character(&p))
+        || (retval = parse_string(&p))
+        || (retval = parse_pair(&p))
+        || (retval = return_error(&p));
+    return retval;
+}
 
-    fprintf(stderr, "Unknown input at '%c'\n", get_char(&p));
-    exit(1);
+object *return_error(parser_t *p)
+{
+    int c = getc(p->stream);
+    if (fpurge(p->stream) == -1)
+    {
+        /* Purge error */
+        fprintf(stderr, "Error during purge: %s\n", strerror(errno));
+        exit(1);
+    }
+    return make_error("Parse error at '%c'", c);
 }
 
 int peek(FILE *in)
@@ -126,16 +128,6 @@ void parser_rollback(parser_t *p)
     }
 }
 
-char maybe_one_of(parser_t *p, func_t func)
-{
-    int c = peek(p->stream);
-    if (func(c))
-    {
-        get_char(p);
-    }
-    return 1;
-}
-
 char many_of(parser_t *p, func_t func)
 {
     int c = peek(p->stream);
@@ -151,6 +143,12 @@ char many_of(parser_t *p, func_t func)
     return 1;
 }
 
+char maybe_many_of(parser_t *p, func_t func)
+{
+    many_of(p, func);
+    return 1;
+}
+
 char one_of(parser_t *p, func_t func)
 {
     int c = peek(p->stream);
@@ -162,10 +160,21 @@ char one_of(parser_t *p, func_t func)
     return 1;
 }
 
+char maybe_one_of(parser_t *p, func_t func)
+{
+    one_of(p, func);
+    return 1;
+}
+
 char follows_one_of(parser_t *p, func_t func)
 {
     int c = peek(p->stream);
     return func(c) ? 1 : 0;
+}
+
+char follows_char_of(parser_t *p, const char c)
+{
+    return peek(p->stream) == c ? 1 : 0;
 }
 
 char char_of(parser_t *p, const char c)
@@ -228,19 +237,19 @@ int is_special_subsequent(int c)
     return c == '+' || c == '-' || c == '.' || c == '@';
 }
 
-char parse_integer(parser_t *p)
+object *parse_integer(parser_t *p)
 {
     if (maybe_one_of(p, is_sign) && many_of(p, isdigit) 
             && follows_one_of(p, is_delimiter))
     {
-        return 1;
+        return make_fixnum(atol(p->buffer));
     }
 
     parser_rollback(p);
-    return 0;
+    return NULL;
 }
 
-char parse_string(parser_t *p)
+object *parse_string(parser_t *p)
 {
     /* TODO: change this function so it fits the other parse functions
      * principles */
@@ -248,7 +257,7 @@ char parse_string(parser_t *p)
     /* Check for string opener */
     if (c != '"')
     {
-        return 0;
+        return NULL;
     }
     c = getc(p->stream);
 
@@ -269,7 +278,7 @@ char parse_string(parser_t *p)
                 default:
                     parser_rollback(p);
                     ungetc('"', p->stream);
-                    return 0;
+                    return NULL;
             }
         }
         else
@@ -283,37 +292,43 @@ char parse_string(parser_t *p)
         ungetc(c, p->stream);
         parser_rollback(p);
         ungetc('"', p->stream);
-        return 0;
+        return NULL;
     }
 
-    return 1;
+    return make_string(p->buffer);
 }
 
-char parse_symbol(parser_t *p)
+object *parse_symbol(parser_t *p)
 {
     if (one_of(p, is_initial) && many_of(p, is_subsequent)
             && follows_one_of(p, is_delimiter))
     {
-        return 1;
+        return make_symbol(p->buffer);
     }
 
     parser_rollback(p);
-    return 0;
+    return NULL;
 }
 
-char parse_boolean(parser_t *p)
+object *parse_boolean(parser_t *p)
 {
-    if (char_of(p, '#') && (char_of(p, 't') || char_of(p, 'f'))
-            && follows_one_of(p, is_delimiter))
+    if (char_of(p, '#'))
     {
-        return 1;
+        if (char_of(p, 't') && follows_one_of(p, is_delimiter))
+        {
+            return true;
+        }
+        else if (char_of(p, 'f') && follows_one_of(p, is_delimiter))
+        {
+            return false;
+        }
     }
 
     parser_rollback(p);
-    return 0;
+    return NULL;
 }
 
-char parse_character(parser_t *p)
+object *parse_character(parser_t *p)
 {
     if (char_of(p, '#') && char_of(p, '\\') 
             && (one_of(p, isalpha) || one_of(p, isdigit) 
@@ -322,7 +337,7 @@ char parse_character(parser_t *p)
         if (follows_one_of(p, is_delimiter))
         {
             /* Just the char value */
-            return 1;
+            return make_character(p->buffer[p->buffer_pos - 1]);
         }
         else if (p->buffer[p->buffer_pos - 1] == 's'
                 && string_of(p, "pace")
@@ -331,7 +346,7 @@ char parse_character(parser_t *p)
             /* 'space' character code */
             strcpy(p->buffer, "#\\ ");
             p->buffer_pos = strlen(p->buffer);
-            return 1;
+            return make_character(p->buffer[p->buffer_pos - 1]);
         }
         else if (p->buffer[p->buffer_pos - 1] == 'n'
                 && string_of(p, "ewline")
@@ -340,17 +355,83 @@ char parse_character(parser_t *p)
             /* 'newline' character code */
             strcpy(p->buffer, "#\\\n");
             p->buffer_pos = strlen(p->buffer);
-            return 1;
+            return make_character(p->buffer[p->buffer_pos - 1]);
         }
     }
 
     parser_rollback(p);
-    return 0;
+    return NULL;
 }
 
+object *parse_pair(parser_t *p)
+{
+    object *obj;
 
+    dbg_pos();
 
+    if (! char_of(p, '('))
+    {
+        return NULL;
+    }
 
+    maybe_one_of(p, isspace);
+
+    obj = read_pair(p);
+    if (is_error_object(obj))
+    {
+        parser_rollback(p);
+    }
+    return obj;
+}
+
+object *read_pair(parser_t *p)
+{
+    object * car_obj;
+    object * cdr_obj = the_empty_list;
+
+    dbg_pos();
+
+    if (char_of(p, ')'))
+    {
+        return the_empty_list;
+    }
+
+    maybe_many_of(p, isspace);
+
+    car_obj = read(p->stream);
+    if (is_error_object(car_obj))
+    {
+        return car_obj;
+    }
+
+    maybe_many_of(p, isspace);
+
+    if (char_of(p, '.')) /* Dotted list */
+    {
+        maybe_many_of(p, isspace);
+        cdr_obj = read(p->stream);
+        if (is_error_object(cdr_obj))
+        {
+            return cdr_obj;
+        }
+        maybe_many_of(p, isspace);
+        if ( ! char_of(p, ')'))
+        {
+            /* List does not end properly */
+            return make_error("Missing ')' at end of dotted list.");
+        }
+    }
+    else
+    {
+        cdr_obj = read_pair(p);
+        if (is_error_object(cdr_obj))
+        {
+            return cdr_obj;
+        }
+    }
+
+    return cons(car_obj, cdr_obj);
+}
 
 
 

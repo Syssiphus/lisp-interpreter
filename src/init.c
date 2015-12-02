@@ -15,5 +15,9 @@ void init(void)
     false = alloc_object();
     false->type = BOOLEAN;
     false->data.boolean.value = 0;
+
+    /* The empty list */
+    the_empty_list = alloc_object();
+    the_empty_list->type = THE_EMPTY_LIST;
 }
 

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "object.h"
 #include "memory.h"
@@ -143,6 +144,59 @@ char *get_symbol_value(object *obj)
     }
 
     return obj->data.symbol.value;
+}
+
+/* The empty list '() */
+char is_the_empty_list(object *obj)
+{
+    return obj->type == THE_EMPTY_LIST;
+}
+
+/* Pairs */
+object *make_pair(object *a, object *b)
+{
+    object *obj = alloc_object();
+    obj->type = PAIR;
+    obj->data.pair.car = a;
+    obj->data.pair.cdr = b;
+    return obj;
+}
+
+char is_pair_object(object *obj)
+{
+    return obj->type == PAIR;
+}
+
+/* Errors */
+object *make_error(const char *fmt, ...)
+{
+    va_list args;
+#define ERROR_MSG_SIZE 1024
+    object *obj = alloc_object();
+    obj->type = ERROR;
+
+    obj->data.error.message = malloc(ERROR_MSG_SIZE);
+    if ( ! obj->data.error.message)
+    {
+        fprintf(stderr, "Out of memory in %s().", __func__);
+        exit(1);
+    }
+
+    va_start(args, fmt);
+    vsnprintf(obj->data.error.message, ERROR_MSG_SIZE - 1, fmt, args);
+    va_end(args);
+
+    return obj;
+}
+
+char is_error_object(object *obj)
+{
+    return obj->type == ERROR;
+}
+
+char *get_error_message(object *obj)
+{
+    return obj->data.error.message;
 }
 
 

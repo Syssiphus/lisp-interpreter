@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 {
     fprintf(stdout, "Welcome to Scheme. (R5RS)\n"
             "Written by B.Paschen (bpaschen@googlemail.com)\n"
-            "Use Ctrl-C or '(quit)' to exit.\n");
+            "Use Ctrl-C to exit.\n");
 
     init();
 

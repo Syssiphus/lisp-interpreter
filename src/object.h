@@ -11,6 +11,8 @@ typedef enum
 , SYMBOL         /* Symbol type */
 , PRIMITIVE_PROC /* Primitive procedure */
 , COMPOUND_PROC  /* Compound procedure */
+, THE_EMPTY_LIST /* The empty list object '() */
+, ERROR          /* Error object */
 } object_type;
 
 typedef struct object
@@ -45,6 +47,17 @@ typedef struct object
         {
             char *value;
         } symbol;
+
+        struct
+        {
+            struct object *car;
+            struct object *cdr;
+        } pair;
+
+        struct
+        {
+            char * message;
+        } error;
     } data;
 } object;
 
@@ -67,5 +80,14 @@ char is_true(object *obj);
 object *make_symbol(char *str);
 char is_symbol_object(object *obj);
 char *get_symbol_value(object *obj);
+
+char is_the_empty_list(object *obj);
+
+object *make_pair(object *a, object *b);
+char is_pair_object(object *obj);
+
+object *make_error(const char *fmt, ...);
+char is_error_object(object *obj);
+char *get_error_message(object *obj);
 
 

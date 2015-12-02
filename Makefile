@@ -11,7 +11,7 @@ TARGET = scheme
 LEGACY_TARGET = legacy_scheme
 
 SOURCES = src/scheme.c src/init.c src/eval.c src/read.c src/write.c \
-		  src/object.c src/memory.c
+		  src/object.c src/memory.c src/builtins.c
 CXX_SOURCES = 
 OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 

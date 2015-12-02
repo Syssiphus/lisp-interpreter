@@ -21,3 +21,6 @@ object *the_global_environment;
 object *true;
 object *false;
 
+/* The empty list */
+object *the_empty_list;
+

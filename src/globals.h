@@ -28,5 +28,9 @@ object *the_empty_list;
 object *the_empty_environment;
 
 /* Builtin/Primitive procedures symbols */
+object *symbol_table;
 object *define_symbol;
+object *quote_symbol;
+object *ok_symbol;
+object *lambda_symbol;
 

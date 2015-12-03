@@ -4,8 +4,10 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "globals.h"
 #include "object.h"
 #include "memory.h"
+#include "builtins.h"
 
 /** FIXNUMS */
 object *make_fixnum(long num)
@@ -115,9 +117,20 @@ char is_true(object *obj)
 object *make_symbol(char *str)
 {
     object *obj;
+    object *temp;
+
+    temp = symbol_table;
+    while ( ! is_the_empty_list(temp))
+    {
+        if (strcmp(car(temp)->data.symbol.value, str) == 0)
+        {
+            return car(temp);
+        }
+        temp = cdr(temp);
+    }
 
     obj = alloc_object();
-
+    obj->type = SYMBOL;
     obj->data.symbol.value = malloc(strlen(str) + 1);
     if ( ! obj->data.symbol.value)
     {
@@ -126,7 +139,7 @@ object *make_symbol(char *str)
         exit(1);
     }
     strcpy(obj->data.symbol.value, str);
-    obj->type = SYMBOL;
+    symbol_table = cons(obj, symbol_table);
     return obj;
 }
 
@@ -229,4 +242,10 @@ char is_eof_object(object *obj)
 {
     return obj->type == END_OF_FILE;
 }
+
+object *make_lambda(object *arguments, object *body)
+{
+    return cons(lambda_symbol, cons(arguments, body));
+}
+
 

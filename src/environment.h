@@ -10,4 +10,8 @@ void add_symbol_to_frame(object *var, object *val, object *frame);
 void define_variable(object *symbol, object *value, object *env);
 object *find_variable(object *symbol, object *env);
 
+object *definition_variable(object *exp);
+object *definition_value(object *exp);
+
+
 

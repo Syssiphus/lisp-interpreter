@@ -53,6 +53,7 @@ object *parse_integer(parser_t *p);
 object *parse_character(parser_t *p);
 object *parse_string(parser_t *p);
 object *parse_pair(parser_t *p);
+object *parse_quote(parser_t *p);
 object *parse_eof(parser_t *p);
 object *read_pair(parser_t *p);
 
@@ -80,6 +81,7 @@ object *read(FILE *in)
         || (retval = parse_character(&p))
         || (retval = parse_string(&p))
         || (retval = parse_pair(&p))
+        || (retval = parse_quote(&p))
         || (retval = parse_eof(&p))
         || (retval = return_error(&p));
     return retval;
@@ -450,6 +452,15 @@ object *read_pair(parser_t *p)
         return cdr_obj;
     }
     return cons(car_obj, cdr_obj);
+}
+
+object *parse_quote(parser_t *p)
+{
+    if (char_of(p, '\''))
+    {
+        return cons(quote_symbol, cons(read(p->stream), the_empty_list));
+    }
+    return NULL;
 }
 
 void _parser_state(parser_t *p, const char *f, unsigned int l, 

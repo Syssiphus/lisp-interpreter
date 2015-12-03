@@ -22,8 +22,16 @@ void init(void)
     the_empty_list = alloc_object();
     the_empty_list->type = THE_EMPTY_LIST;
 
+    /* Global symbols */
+    symbol_table  = the_empty_list;
+    define_symbol = make_symbol("define");
+    quote_symbol  = make_symbol("quote");
+    ok_symbol     = make_symbol("ok");
+    lambda_symbol = make_symbol("lambda");
+
     /* The global environment */
     the_empty_environment = the_empty_list;
     the_global_environment = make_environment();
+
 }
 

@@ -14,6 +14,11 @@ void set_cdr(object *dst, object *obj);
 #define cdar(x) cdr(car(x))
 #define cddr(x) cdr(cdr(x))
 
+#define caddr(x) car(cdr(cdr(x)))
+#define caadr(x) car(car(cdr(x)))
+#define caddr(x) car(cdr(cdr(x)))
+#define cdadr(x) cdr(car(cdr(x)))
+
 object *add_proc(object *arguments);
 object *sub_proc(object *arguments);
 object *mul_proc(object *arguments);

@@ -119,3 +119,28 @@ object *find_variable(object *symbol, object *env)
     return make_error("Unknown symbol '%s'", get_symbol_value(symbol));
 }
 
+object *definition_variable(object *exp)
+{
+    if (is_symbol_object(cadr(exp)))
+    {
+        return cadr(exp);
+    }
+    else
+    {
+        return caadr(exp);
+    }
+}
+
+object *definition_value(object *exp)
+{
+    if (is_symbol_object(cadr(exp)))
+    {
+        return caddr(exp);
+    }
+    else
+    {
+        return make_lambda(cdadr(exp), cddr(exp));
+    }
+}
+
+

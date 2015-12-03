@@ -107,3 +107,5 @@ primitive_proc_t get_primitive_proc_value(object *obj);
 object *make_eof(void);
 char is_eof_object(object *obj);
 
+object *make_lambda(object *arguments, object *body);
+

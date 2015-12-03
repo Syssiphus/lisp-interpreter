@@ -13,7 +13,12 @@ typedef enum
 , COMPOUND_PROC  /* Compound procedure */
 , THE_EMPTY_LIST /* The empty list object '() */
 , ERROR          /* Error object */
+, END_OF_FILE    /* End of file type (no idea if this is good)*/
 } object_type;
+
+struct object;
+
+typedef struct object *(*primitive_proc_t)(struct object *);
 
 typedef struct object
 {
@@ -58,6 +63,11 @@ typedef struct object
         {
             char * message;
         } error;
+
+        struct
+        {
+            primitive_proc_t fn;
+        } primitive_proc;
     } data;
 } object;
 
@@ -90,4 +100,10 @@ object *make_error(const char *fmt, ...);
 char is_error_object(object *obj);
 char *get_error_message(object *obj);
 
+object *make_primitive_proc(primitive_proc_t fn);
+char is_primitive_proc_object(object *obj);
+primitive_proc_t get_primitive_proc_value(object *obj);
+
+object *make_eof(void);
+char is_eof_object(object *obj);
 

@@ -56,6 +56,15 @@ void write(FILE *out, object *obj)
     {
         fprintf(out, "Error: %s", get_error_message(obj));
     }
+    else if (is_primitive_proc_object(obj))
+    {
+        fprintf(out, "<primitive procedure %p>", 
+                get_primitive_proc_value(obj));
+    }
+    else if (is_eof_object(obj))
+    {
+        ; /* Nothing */
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknown object '%s'\n",

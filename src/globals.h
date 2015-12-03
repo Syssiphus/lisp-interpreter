@@ -24,3 +24,9 @@ object *false;
 /* The empty list */
 object *the_empty_list;
 
+/* The empty environment */
+object *the_empty_environment;
+
+/* Builtin/Primitive procedures symbols */
+object *define_symbol;
+

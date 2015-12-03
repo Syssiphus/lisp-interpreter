@@ -10,6 +10,12 @@
 #include "memory.h"
 #include "builtins.h"
 
+#ifdef DEBUGGING_ON
+#define parser_state(p) _parser_state(p, __FILE__, __LINE__, __func__)
+#else
+#define parser_state(x)
+#endif
+
 typedef struct
 {
     FILE *stream;
@@ -47,9 +53,13 @@ object *parse_integer(parser_t *p);
 object *parse_character(parser_t *p);
 object *parse_string(parser_t *p);
 object *parse_pair(parser_t *p);
+object *parse_eof(parser_t *p);
 object *read_pair(parser_t *p);
 
 object *return_error(parser_t *p);
+
+void _parser_state(parser_t *p, const char *f, unsigned int l, 
+        const char *func);
 
 /**
  * Reads a stream and creates an object.
@@ -70,6 +80,7 @@ object *read(FILE *in)
         || (retval = parse_character(&p))
         || (retval = parse_string(&p))
         || (retval = parse_pair(&p))
+        || (retval = parse_eof(&p))
         || (retval = return_error(&p));
     return retval;
 }
@@ -300,7 +311,17 @@ object *parse_string(parser_t *p)
 
 object *parse_symbol(parser_t *p)
 {
-    if (one_of(p, is_initial) && many_of(p, is_subsequent)
+    if (one_of(p, is_initial) && maybe_many_of(p, is_subsequent)
+            && follows_one_of(p, is_delimiter))
+    {
+        return make_symbol(p->buffer);
+    }
+    parser_rollback(p);
+
+    /* Else check for the 'peculiar' identifier ('+' | '-' | '...') */
+
+    if ((char_of(p, '+') || char_of(p, '-') 
+            || (char_of(p, '.') && char_of(p, '.') && char_of(p, '.')))
             && follows_one_of(p, is_delimiter))
     {
         return make_symbol(p->buffer);
@@ -363,75 +384,80 @@ object *parse_character(parser_t *p)
     return NULL;
 }
 
+object *parse_eof(parser_t *p)
+{
+    if (char_of(p, EOF) && (p->stream == stdin))
+    {
+        return make_eof();
+    }
+
+    return NULL;
+}
+
 object *parse_pair(parser_t *p)
 {
-    object *obj;
-
-    dbg_pos();
-
-    if (! char_of(p, '('))
+    if (char_of(p, '('))
     {
-        return NULL;
+        return read_pair(p);
     }
-
-    maybe_one_of(p, isspace);
-
-    obj = read_pair(p);
-    if (is_error_object(obj))
-    {
-        parser_rollback(p);
-    }
-    return obj;
+    return NULL;
 }
 
 object *read_pair(parser_t *p)
 {
     object * car_obj;
-    object * cdr_obj = the_empty_list;
+    object * cdr_obj;
 
-    dbg_pos();
+    maybe_many_of(p, isspace);
 
     if (char_of(p, ')'))
     {
         return the_empty_list;
     }
 
-    maybe_many_of(p, isspace);
-
     car_obj = read(p->stream);
-    if (is_error_object(car_obj))
+    if (car_obj == NULL || is_error_object(car_obj))
     {
         return car_obj;
     }
 
     maybe_many_of(p, isspace);
 
-    if (char_of(p, '.')) /* Dotted list */
+    if (char_of(p, '.'))
     {
-        maybe_many_of(p, isspace);
+        /* Dotted list */
+        if ( ! follows_one_of(p, is_delimiter))
+        {
+            return NULL;
+        }
         cdr_obj = read(p->stream);
-        if (is_error_object(cdr_obj))
+        if (cdr_obj == NULL || is_error_object(cdr_obj))
         {
             return cdr_obj;
         }
         maybe_many_of(p, isspace);
         if ( ! char_of(p, ')'))
         {
-            /* List does not end properly */
-            return make_error("Missing ')' at end of dotted list.");
+            return NULL;
         }
-    }
-    else
-    {
-        cdr_obj = read_pair(p);
-        if (is_error_object(cdr_obj))
-        {
-            return cdr_obj;
-        }
+        return cons(car_obj, cdr_obj);
     }
 
+    /* Proper list */
+    cdr_obj = read_pair(p);
+    if (cdr_obj == NULL || is_error_object(cdr_obj))
+    {
+        return cdr_obj;
+    }
     return cons(car_obj, cdr_obj);
 }
 
+void _parser_state(parser_t *p, const char *f, unsigned int l, 
+        const char *func)
+{
+    fprintf(stderr, "%s, %d, %s() - "
+            "parser state (\"%s\", %ld), next char ('%c')\n", f, l, func, 
+            p->buffer, p->buffer_pos, peek(p->stream));
+}
 
 

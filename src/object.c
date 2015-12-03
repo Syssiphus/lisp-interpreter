@@ -199,4 +199,34 @@ char *get_error_message(object *obj)
     return obj->data.error.message;
 }
 
+/* Primitive procedure */
+object *make_primitive_proc(primitive_proc_t fn)
+{
+    object *obj = alloc_object();
+    obj->type = PRIMITIVE_PROC;
+    obj->data.primitive_proc.fn = fn;
+    return obj;
+}
+
+char is_primitive_proc_object(object *obj)
+{
+    return obj->type == PRIMITIVE_PROC;
+}
+
+primitive_proc_t get_primitive_proc_value(object *obj)
+{
+    return obj->data.primitive_proc.fn;
+}
+
+object *make_eof(void)
+{
+    object *obj = alloc_object();
+    obj->type = END_OF_FILE;
+    return obj;
+}
+
+char is_eof_object(object *obj)
+{
+    return obj->type == END_OF_FILE;
+}
 

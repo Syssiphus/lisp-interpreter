@@ -11,13 +11,14 @@ TARGET = scheme
 LEGACY_TARGET = legacy_scheme
 
 SOURCES = src/scheme.c src/init.c src/eval.c src/read.c src/write.c \
-		  src/object.c src/memory.c src/builtins.c
+		  src/object.c src/memory.c src/builtins.c src/environment.c
 CXX_SOURCES = 
 OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 
 LEGACY_SOURCES = legacy_src/main.c
 LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
+DBG=1
 ifeq ($(DBG), 1)
 CFLAGS = -g -O0 -Isrc -Wall -ansi
 CXXFLAGS = -g -O0 -Isrc -Wall

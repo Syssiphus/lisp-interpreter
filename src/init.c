@@ -2,6 +2,8 @@
 #include "globals.h"
 #include "memory.h"
 
+object *make_environment(void);
+
 void init(void)
 {
     /* Initialize the mempool (must be first call) */
@@ -19,5 +21,9 @@ void init(void)
     /* The empty list */
     the_empty_list = alloc_object();
     the_empty_list->type = THE_EMPTY_LIST;
+
+    /* The global environment */
+    the_empty_environment = the_empty_list;
+    the_global_environment = make_environment();
 }
 

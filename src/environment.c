@@ -35,6 +35,7 @@ void populate_environment(object *env)
     add_procedure("+", add_proc);
     add_procedure("-", sub_proc);
     add_procedure("*", mul_proc);
+    add_procedure("quotient", quotient_proc);
 
     add_procedure("length", length_proc);
 }

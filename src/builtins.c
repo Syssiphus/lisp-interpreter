@@ -109,4 +109,25 @@ object *mul_proc(object *arguments)
     return make_fixnum(result);
 }
 
+object *quotient_proc(object *arguments)
+{
+    long result = 0;
+    object *l = length_proc(cons(arguments, the_empty_list));
+
+    if (is_error_object(l))
+    {
+        return make_error("Wrong argument type to 'quotient'.");
+    }
+    else if (get_fixnum_value(l) != 2)
+    {
+        return make_error("Procedure 'quotient' needs 2 arguments.");
+    }
+    else
+    {
+        result = get_fixnum_value(car(arguments))
+            / get_fixnum_value(cadr(arguments));
+        return make_fixnum(result);
+    }
+}
+
 

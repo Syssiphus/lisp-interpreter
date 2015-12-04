@@ -23,11 +23,29 @@ void init(void)
     the_empty_list->type = THE_EMPTY_LIST;
 
     /* Global symbols */
-    symbol_table  = the_empty_list;
-    define_symbol = make_symbol("define");
-    quote_symbol  = make_symbol("quote");
-    ok_symbol     = make_symbol("ok");
-    lambda_symbol = make_symbol("lambda");
+    symbol_table     = the_empty_list;
+    define_symbol    = make_symbol("define");
+    set_symbol       = make_symbol("set!");
+    quote_symbol     = make_symbol("quote");
+    let_symbol       = make_symbol("let");
+    ok_symbol        = make_symbol("ok");
+    lambda_symbol    = make_symbol("lambda");
+    begin_symbol     = make_symbol("begin");
+
+    /* Memory related */
+    mem_usage_symbol = make_symbol("mem-usage");
+
+    /* Conditionals */
+    if_symbol        = make_symbol("if");
+    cond_symbol      = make_symbol("cond");
+    else_symbol      = make_symbol("else");
+
+    /* Equivalency predicates */
+    eqv_symbol       = make_symbol("eqv?");
+    symbol_eq_symbol = make_symbol("symbol=?");
+    string_eq_symbol = make_symbol("string=?");
+    char_eq_symbol   = make_symbol("char=?");
+    num_eq_symbol    = make_symbol("=");
 
     /* The global environment */
     the_empty_environment = the_empty_list;

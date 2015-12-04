@@ -16,6 +16,7 @@ typedef struct
 } string_buffer;
 
 void init_memory_pool(void);
+long memory_usage(void);
 object *alloc_object(void);
 
 

@@ -68,6 +68,13 @@ typedef struct object
         {
             primitive_proc_t fn;
         } primitive_proc;
+
+        struct
+        {
+            struct object *parameters;
+            struct object *body;
+            struct object *env;
+        } compound_proc;
     } data;
 } object;
 
@@ -108,4 +115,9 @@ object *make_eof(void);
 char is_eof_object(object *obj);
 
 object *make_lambda(object *arguments, object *body);
+object *make_begin(object *obj);
+
+object *make_compound_proc(object *parameters, object *body, object *env);
+char is_compound_proc_object(object *obj);
+
 

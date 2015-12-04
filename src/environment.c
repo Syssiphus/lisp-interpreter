@@ -32,12 +32,20 @@ void populate_environment(object *env)
     define_variable(make_symbol(scheme_name), \
             make_primitive_proc(c_name), env);
 
-    add_procedure("+", add_proc);
-    add_procedure("-", sub_proc);
-    add_procedure("*", mul_proc);
+    add_procedure("+"       , add_proc);
+    add_procedure("-"       , sub_proc);
+    add_procedure("*"       , mul_proc);
     add_procedure("quotient", quotient_proc);
 
-    add_procedure("length", length_proc);
+    add_procedure("length"  , length_proc);
+
+    add_procedure("mem-usage", mem_usage_proc);
+
+    add_procedure("eqv?"    , is_eqv_proc);
+    add_procedure("symbol=?", is_symbol_equal_proc);
+    add_procedure("string=?", is_string_equal_proc);
+    add_procedure("char=?"  , is_character_equal_proc);
+    add_procedure("="       , is_number_equal_proc);
 }
 
 object *extend_environment(object *vars, object *vals, object *base_env)
@@ -94,6 +102,30 @@ void define_variable(object *symbol, object *value, object *env)
         vals = cdr(vals);
     }
     add_symbol_to_frame(symbol, value, frame);
+}
+
+object *set_variable(object *symbol, object *value, object *env)
+{
+    while ( ! is_the_empty_list(env))
+    {
+        object *frame = first_frame(env);
+        object *vars = frame_variables(frame);
+        object *vals = frame_values(frame);
+        while ( ! is_the_empty_list(vars))
+        {
+            if (strcmp(get_symbol_value(symbol), 
+                        get_symbol_value(car(vars))) == 0)
+            {
+                set_car(vals, value);
+                return ok_symbol;
+            }
+            vars = cdr(vars);
+            vals = cdr(vals);
+        }
+        env = enclosing_environment(env);
+    }
+
+    return make_error("Unknown symbol '%s'", get_symbol_value(symbol));
 }
 
 object *find_variable(object *symbol, object *env)

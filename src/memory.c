@@ -25,6 +25,18 @@ void init_memory_pool(void)
     reserve_mem_pool = mem_pool + (MEMORY_POOL_SIZE * sizeof(object));
 }
 
+long memory_usage(void)
+{
+    int i;
+    long retval = 0;
+
+    for (i = 0; i < MEMORY_POOL_SIZE; ++i)
+    {
+        if (((object *)active_mem_pool)[i].used) ++retval;
+    }
+    return retval;
+}
+
 object *get_mempool_object(void)
 {
     int i;

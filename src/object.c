@@ -248,4 +248,24 @@ object *make_lambda(object *arguments, object *body)
     return cons(lambda_symbol, cons(arguments, body));
 }
 
+object *make_begin(object *obj)
+{
+    return cons(begin_symbol, obj);
+}
+
+object *make_compound_proc(object *parameters, object *body, object *env)
+{
+    object *obj = alloc_object();
+    obj->type = COMPOUND_PROC;
+    obj->data.compound_proc.parameters = parameters;
+    obj->data.compound_proc.body = body;
+    obj->data.compound_proc.env = env;
+    return obj;
+}
+
+char is_compound_proc_object(object *obj)
+{
+    return obj->type == COMPOUND_PROC;
+}
+
 

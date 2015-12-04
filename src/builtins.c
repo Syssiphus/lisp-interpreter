@@ -1,8 +1,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
 #include "globals.h"
 #include "builtins.h"
+#include "memory.h"
 
 object *cons(object *a, object *b)
 {
@@ -129,5 +132,99 @@ object *quotient_proc(object *arguments)
         return make_fixnum(result);
     }
 }
+
+object *mem_usage_proc(object *obj)
+{
+    return make_fixnum(memory_usage());
+}
+
+object *is_eqv_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if (obj1->type != obj2->type)
+    {
+        return false;
+    }
+
+    switch (obj1->type)
+    {
+        case SYMBOL:
+            return is_symbol_equal_proc(arguments);
+        case STRING:
+            return is_string_equal_proc(arguments);
+        case CHARACTER:
+            return is_character_equal_proc(arguments);
+        case FIXNUM:
+            return is_number_equal_proc(arguments);
+        default:
+            return (obj1 == obj2) ? true : false;
+    }
+}
+
+object *is_symbol_equal_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if ( ! is_symbol_object(obj1) || ! is_symbol_object(obj2))
+    {
+        return false;
+    }
+    return (obj1 == obj2) ? true : false;
+}
+
+object *is_string_equal_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if ( ! is_string_object(obj1) || ! is_string_object(obj2))
+    {
+        return false;
+    }
+
+    return strcmp(get_string_value(obj1), get_string_value(obj2)) == 0
+        ? true
+        : false;
+}
+
+object *is_character_equal_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if ( ! is_character_object(obj1) || ! is_character_object(obj2))
+    {
+        return false;
+    }
+
+    return (get_character_value(obj1) == get_character_value(obj2))
+        ? true
+        : false;
+}
+
+object *is_number_equal_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if (obj1->type != obj2->type)
+    {
+        return false;
+    }
+
+    switch (obj1->type)
+    {
+        case FIXNUM:
+            return (get_fixnum_value(obj1) == get_fixnum_value(obj2))
+                ? true
+                : false;
+        default:
+            return false;
+    }
+}
+
 
 

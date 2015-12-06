@@ -13,6 +13,10 @@ void write(FILE *out, object *obj)
     {
         fprintf(out, "%ld", get_fixnum_value(obj));
     }
+    else if (is_realnum_object(obj))
+    {
+        fprintf(out, "%f", get_realnum_value(obj));
+    }
     else if (is_character_object(obj))
     {
         int c = get_character_value(obj);

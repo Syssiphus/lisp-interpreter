@@ -1,4 +1,3 @@
-
 #include "globals.h"
 #include "memory.h"
 
@@ -40,6 +39,9 @@ void init(void)
     cond_symbol      = make_symbol("cond");
     else_symbol      = make_symbol("else");
 
+    /* Booleans */
+    not_symbol       = make_symbol("not");
+
     /* Equivalency predicates */
     eqv_symbol       = make_symbol("eqv?");
     symbol_eq_symbol = make_symbol("symbol=?");
@@ -47,9 +49,11 @@ void init(void)
     char_eq_symbol   = make_symbol("char=?");
     num_eq_symbol    = make_symbol("=");
 
+    /* File operations */
+    load_symbol = make_symbol("load");
+
     /* The global environment */
     the_empty_environment = the_empty_list;
     the_global_environment = make_environment();
-
 }
 

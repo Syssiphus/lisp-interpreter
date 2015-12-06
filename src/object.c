@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include <gc.h>
 
 #include "globals.h"
 #include "object.h"
@@ -34,6 +35,27 @@ long get_fixnum_value(object *obj)
     }
 
     return obj->data.fixnum.value;
+}
+
+/** REAL NUMBERS */
+object *make_realnum(double num)
+{
+    object *obj;
+
+    obj = alloc_object();
+    obj->type = REALNUM;
+    obj->data.realnum.value = num;
+    return obj;
+}
+
+char is_realnum_object(object *obj)
+{
+    return obj->type == REALNUM;
+}
+    
+double get_realnum_value(object *obj)
+{
+    return obj->data.realnum.value;
 }
 
 /** CHARACTERS */
@@ -70,7 +92,7 @@ object *make_string(char *str)
 
     obj = alloc_object();
 
-    obj->data.string.value = malloc(strlen(str) + 1);
+    obj->data.string.value = GC_malloc(strlen(str) + 1);
     if ( ! obj->data.string.value)
     {
         fprintf(stderr, "Error allocating string space for string '%s'.", str);
@@ -131,7 +153,7 @@ object *make_symbol(char *str)
 
     obj = alloc_object();
     obj->type = SYMBOL;
-    obj->data.symbol.value = malloc(strlen(str) + 1);
+    obj->data.symbol.value = GC_malloc(strlen(str) + 1);
     if ( ! obj->data.symbol.value)
     {
         fprintf(stderr, "Error allocating string space for symbol string "
@@ -188,7 +210,7 @@ object *make_error(const char *fmt, ...)
     object *obj = alloc_object();
     obj->type = ERROR;
 
-    obj->data.error.message = malloc(ERROR_MSG_SIZE);
+    obj->data.error.message = GC_malloc(ERROR_MSG_SIZE);
     if ( ! obj->data.error.message)
     {
         fprintf(stderr, "Out of memory in %s().", __func__);
@@ -231,16 +253,22 @@ primitive_proc_t get_primitive_proc_value(object *obj)
     return obj->data.primitive_proc.fn;
 }
 
-object *make_eof(void)
+object *make_eof(FILE *which)
 {
     object *obj = alloc_object();
     obj->type = END_OF_FILE;
+    obj->data.end_of_file.stream = which;
     return obj;
 }
 
 char is_eof_object(object *obj)
 {
     return obj->type == END_OF_FILE;
+}
+
+FILE *get_eof_stream(object *obj)
+{
+    return obj->data.end_of_file.stream;
 }
 
 object *make_lambda(object *arguments, object *body)

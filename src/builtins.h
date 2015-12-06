@@ -31,10 +31,13 @@ object *length_proc(object *arguments);
 
 object *mem_usage_proc(object *obj);
 
-object *is_eqv_proc(object *arguments);
+object *not_proc(object *obj);
 
+object *is_eqv_proc(object *arguments);
 object *is_symbol_equal_proc(object *arguments);
 object *is_string_equal_proc(object *arguments);
 object *is_character_equal_proc(object *arguments);
 object *is_number_equal_proc(object *arguments);
+
+object *load_proc(object *arguments);
 

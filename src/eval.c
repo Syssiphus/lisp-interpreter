@@ -116,14 +116,17 @@ tailcall:
         return make_error("Unknown procedure '%s'.", 
                 get_symbol_value(car(expr)));
     }
-    else if (is_primitive_proc_object(expr))
-    {
-        return expr;
-    }
     else if (is_eof_object(expr))
     {
-        fprintf(stderr, "\nExiting.\n");
-        exit(0);
+        if (get_eof_stream(expr) == stdin)
+        {
+            fprintf(stderr, "\nExiting.\n");
+            exit(0);
+        }
+        else
+        {
+            return ok_symbol;
+        }
     }
     return make_error("No operation, unknown object type involved.");
 }
@@ -131,11 +134,13 @@ tailcall:
 char is_self_evaluating(object *obj)
 {
     return is_fixnum_object(obj)
+        || is_realnum_object(obj)
         || is_character_object(obj)
         || is_string_object(obj)
         || is_boolean_object(obj)
         || is_the_empty_list(obj)
         || is_error_object(obj)
+        || is_primitive_proc_object(obj)
         ;
 }
 

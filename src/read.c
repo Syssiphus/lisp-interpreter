@@ -23,6 +23,7 @@ typedef struct
     size_t buffer_pos;
 } parser_t;
 
+typedef object*(*parser_function_t)(parser_t*);
 typedef int(*func_t)(int);
 
 int peek(FILE *in);
@@ -50,6 +51,7 @@ int is_special_subsequent(int c);
 object *parse_symbol(parser_t *p);
 object *parse_boolean(parser_t *p);
 object *parse_integer(parser_t *p);
+object *parse_double(parser_t *p);
 object *parse_character(parser_t *p);
 object *parse_string(parser_t *p);
 object *parse_pair(parser_t *p);
@@ -67,24 +69,35 @@ void _parser_state(parser_t *p, const char *f, unsigned int l,
  */
 object *read(FILE *in)
 {
-    object *retval;
+    int i;
     parser_t p;
+    parser_function_t parser_functions[] = {
+        parse_symbol,
+        parse_boolean,
+        parse_double,
+        parse_integer,
+        parse_character,
+        parse_string,
+        parse_pair,
+        parse_quote,
+        parse_eof
+    };
+
     p.stream = in;
     memset(p.buffer, 0x00, sizeof(p.buffer));
     p.buffer_pos = 0;
 
     eat_whitespace(in);
 
-    (retval = parse_symbol(&p))
-        || (retval = parse_boolean(&p))
-        || (retval = parse_integer(&p))
-        || (retval = parse_character(&p))
-        || (retval = parse_string(&p))
-        || (retval = parse_pair(&p))
-        || (retval = parse_quote(&p))
-        || (retval = parse_eof(&p))
-        || (retval = return_error(&p));
-    return retval;
+    for (i = 0; 
+            i < (sizeof(parser_functions) / sizeof(parser_function_t)); 
+            ++i)
+    {
+        object * o = parser_functions[i](&p);
+        if (o) return o;
+    }
+
+    return return_error(&p);
 }
 
 object *return_error(parser_t *p)
@@ -96,7 +109,7 @@ object *return_error(parser_t *p)
         fprintf(stderr, "Error during purge: %s\n", strerror(errno));
         exit(1);
     }
-    return make_error("Parse error at '%c'", c);
+    return make_error("Parse error at '%c' (%d)", c, c);
 }
 
 int peek(FILE *in)
@@ -138,6 +151,7 @@ void parser_rollback(parser_t *p)
     while (p->buffer_pos > 0)
     {
         ungetc(p->buffer[--p->buffer_pos], p->stream);
+        p->buffer[p->buffer_pos] = '\0';
     }
 }
 
@@ -256,6 +270,19 @@ object *parse_integer(parser_t *p)
             && follows_one_of(p, is_delimiter))
     {
         return make_fixnum(atol(p->buffer));
+    }
+
+    parser_rollback(p);
+    return NULL;
+}
+
+object *parse_double(parser_t *p)
+{
+    if (maybe_one_of(p, is_sign) && maybe_many_of(p, isdigit) 
+            && char_of(p, '.') && many_of(p, isdigit) 
+            && follows_one_of(p, is_delimiter))
+    {
+        return make_realnum(atof(p->buffer));
     }
 
     parser_rollback(p);
@@ -388,9 +415,9 @@ object *parse_character(parser_t *p)
 
 object *parse_eof(parser_t *p)
 {
-    if (char_of(p, EOF) && (p->stream == stdin))
+    if (char_of(p, EOF))
     {
-        return make_eof();
+        return make_eof(p->stream);
     }
 
     return NULL;

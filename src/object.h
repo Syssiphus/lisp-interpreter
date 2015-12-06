@@ -1,9 +1,12 @@
 
 #pragma once
 
+#include <stdio.h>
+
 typedef enum 
 {
   FIXNUM         /* Integer number (64 bit) */
+, REALNUM        /* Real number (double) */
 , BOOLEAN        /* Truth type (boolean) */
 , CHARACTER      /* Character type */
 , STRING         /* String type */
@@ -32,6 +35,11 @@ typedef struct object
         {
             long value;
         } fixnum;
+
+        struct
+        {
+            double value;
+        } realnum;
 
         struct
         {
@@ -75,12 +83,21 @@ typedef struct object
             struct object *body;
             struct object *env;
         } compound_proc;
+
+        struct
+        {
+            FILE *stream;
+        } end_of_file;
     } data;
 } object;
 
 object *make_fixnum(long num);
 char is_fixnum_object(object *obj);
 long get_fixnum_value(object *obj);
+
+object *make_realnum(double num);
+char is_realnum_object(object *obj);
+double get_realnum_value(object *obj);
 
 object *make_character(int c);
 char is_character_object(object *obj);
@@ -111,8 +128,9 @@ object *make_primitive_proc(primitive_proc_t fn);
 char is_primitive_proc_object(object *obj);
 primitive_proc_t get_primitive_proc_value(object *obj);
 
-object *make_eof(void);
+object *make_eof(FILE *which);
 char is_eof_object(object *obj);
+FILE *get_eof_stream(object *obj);
 
 object *make_lambda(object *arguments, object *body);
 object *make_begin(object *obj);

@@ -22,11 +22,11 @@ DBG=1
 ifeq ($(DBG), 1)
 CFLAGS = -g -O0 -Isrc -Wall -ansi
 CXXFLAGS = -g -O0 -Isrc -Wall
-LDFLAGS =
+LDFLAGS = -lgc
 else
 CFLAGS = -O2 -Isrc -Wall -ansi
 CXXFLAGS = -O2 -Isrc -Wall
-LDFLAGS =
+LDFLAGS = -lgc
 endif
 
 all: $(TARGET)

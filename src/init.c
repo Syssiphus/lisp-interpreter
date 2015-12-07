@@ -31,9 +31,6 @@ void init(void)
     lambda_symbol    = make_symbol("lambda");
     begin_symbol     = make_symbol("begin");
 
-    /* Memory related */
-    mem_usage_symbol = make_symbol("mem-usage");
-
     /* Conditionals */
     if_symbol        = make_symbol("if");
     cond_symbol      = make_symbol("cond");
@@ -42,27 +39,6 @@ void init(void)
     /* Booleans */
     and_symbol       = make_symbol("and");
     or_symbol        = make_symbol("or");
-
-    /* Predicates */
-    is_number_symbol   = make_symbol("number?");
-    is_complex_symbol  = make_symbol("complex?");
-    is_real_symbol     = make_symbol("real?");
-    is_rational_symbol = make_symbol("rational?");
-    is_integer_symbol  = make_symbol("integer?");
-
-    /* Equivalency predicates */
-    eqv_symbol       = make_symbol("eqv?");
-    symbol_eq_symbol = make_symbol("symbol=?");
-    string_eq_symbol = make_symbol("string=?");
-    char_eq_symbol   = make_symbol("char=?");
-    num_eq_symbol    = make_symbol("=");
-    num_lt_symbol    = make_symbol("<");
-    num_gt_symbol    = make_symbol(">");
-    num_lteq_symbol  = make_symbol("<=");
-    num_gteq_symbol  = make_symbol(">=");
-
-    /* File operations */
-    load_symbol = make_symbol("load");
 
     /* The global environment */
     the_empty_environment = the_empty_list;

@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "globals.h"
 #include "eval.h"
@@ -94,6 +95,42 @@ tailcall:
             expr = cdr(expr);
         }
         expr = car(expr);
+        goto tailcall;
+    }
+    else if (is_tagged_list(expr, or_symbol))
+    {
+        expr = cdr(expr);
+        if (is_the_empty_list(expr))
+        {
+            return false;
+        }
+        while ( ! is_the_empty_list(cdr(expr)))
+        {
+            if (is_true(eval(car(expr), env)))
+            {
+                return true;
+            }
+            expr = cdr(expr);
+        }
+        expr = car(expr);
+        goto tailcall;
+    }
+    else if (is_tagged_list(expr, and_symbol))
+    {
+        expr = cdr(expr);
+        if (is_the_empty_list(expr))
+        {
+            return true;
+        }
+        while ( ! is_the_empty_list(cdr(expr)))
+        {
+            if (is_false(eval(car(expr), env)))
+            {
+                return false;
+            }
+            expr = cdr(arguments);
+        }
+        expr = car(arguments);
         goto tailcall;
     }
     else if (is_pair_object(expr))

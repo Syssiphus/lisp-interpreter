@@ -41,13 +41,21 @@ void populate_environment(object *env)
 
     add_procedure("mem-usage", mem_usage_proc);
 
-    add_procedure("not", not_proc);
+    add_procedure("number?"  , is_number_proc);
+    add_procedure("complex?" , is_complex_proc);
+    add_procedure("real?"    , is_real_proc);
+    add_procedure("rational?", is_rational_proc);
+    add_procedure("integer?" , is_integer_proc);
 
     add_procedure("eqv?"    , is_eqv_proc);
     add_procedure("symbol=?", is_symbol_equal_proc);
     add_procedure("string=?", is_string_equal_proc);
     add_procedure("char=?"  , is_character_equal_proc);
     add_procedure("="       , is_number_equal_proc);
+    add_procedure("<"       , is_number_lt_proc);
+    add_procedure(">"       , is_number_gt_proc);
+    add_procedure("<="      , is_number_lteq_proc);
+    add_procedure(">="      , is_number_gteq_proc);
 
     add_procedure("load"    , load_proc);
 }

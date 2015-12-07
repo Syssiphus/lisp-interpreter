@@ -44,13 +44,24 @@ object *if_symbol;
 object *cond_symbol;
 object *else_symbol;
 
-object * not_symbol;
+object *and_symbol;
+object *or_symbol;
+
+object *is_number_symbol;
+object *is_complex_symbol;
+object *is_real_symbol;
+object *is_rational_symbol;
+object *is_integer_symbol;
 
 object *eqv_symbol;
 object *symbol_eq_symbol;
 object *string_eq_symbol;
 object *char_eq_symbol;
 object *num_eq_symbol;
+object *num_lt_symbol;
+object *num_gt_symbol;
+object *num_lteq_symbol;
+object *num_gteq_symbol;
 
 object *load_symbol;
 

@@ -201,24 +201,46 @@ object *mem_usage_proc(object *obj)
     return make_fixnum(memory_usage());
 }
 
-object *not_proc(object *arguments)
+object *is_number_proc(object *arguments)
 {
-    object *l = length_proc(cons(arguments, the_empty_list));
-
-    if (is_error_object(l)) return l;
-
-    if (get_fixnum_value(l) != 1)
+    if ( ! is_the_empty_list(cdr(arguments)))
     {
-        return make_error("Too many arguments to 'not' "
-                "(got: %ld, expected: 1)", get_fixnum_value(l));
+        return make_error("Too many arguments to 'number?'.");
     }
 
-    if (is_boolean_object(car(arguments)) && is_false(car(arguments)))
+    return is_true(is_real_proc(arguments))
+        || is_true(is_integer_proc(arguments))
+        ? true : false;
+}
+
+object *is_complex_proc(object *arguments)
+{
+    return make_error("'complex?' not implemented yet.");
+}
+
+object *is_real_proc(object *arguments)
+{
+    if ( ! is_the_empty_list(cdr(arguments)))
     {
-        return true;
+        return make_error("Too many arguments to 'number?'.");
     }
 
-    return false;
+    return is_realnum_object(car(arguments)) ? true : false;
+}
+
+object *is_rational_proc(object *arguments)
+{
+    return make_error("'rational?' not implemented yet.");
+}
+
+object *is_integer_proc(object *arguments)
+{
+    if ( ! is_the_empty_list(cdr(arguments)))
+    {
+        return make_error("Too many arguments to 'number?'.");
+    }
+
+    return is_fixnum_object(car(arguments)) ? true : false;
 }
 
 object *is_eqv_proc(object *arguments)
@@ -321,6 +343,142 @@ object *is_number_equal_proc(object *arguments)
     }
 
     return (value1 == value2) ? true : false;
+}
+
+object *is_number_lt_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    double value1, value2;
+
+    switch (obj1->type)
+    {
+        case FIXNUM:
+            value1 = get_fixnum_value(obj1);
+            break;
+        case REALNUM:
+            value1 = get_realnum_value(obj1);
+            break;
+        default:
+            return false;
+    }
+
+    switch (obj2->type)
+    {
+        case FIXNUM:
+            value2 = get_fixnum_value(obj2);
+            break;
+        case REALNUM:
+            value2 = get_realnum_value(obj2);
+            break;
+        default:
+            return false;
+    }
+
+    return (value1 < value2) ? true : false;
+}
+
+object *is_number_gt_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    double value1, value2;
+
+    switch (obj1->type)
+    {
+        case FIXNUM:
+            value1 = get_fixnum_value(obj1);
+            break;
+        case REALNUM:
+            value1 = get_realnum_value(obj1);
+            break;
+        default:
+            return false;
+    }
+
+    switch (obj2->type)
+    {
+        case FIXNUM:
+            value2 = get_fixnum_value(obj2);
+            break;
+        case REALNUM:
+            value2 = get_realnum_value(obj2);
+            break;
+        default:
+            return false;
+    }
+
+    return (value1 > value2) ? true : false;
+}
+
+object *is_number_lteq_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    double value1, value2;
+
+    switch (obj1->type)
+    {
+        case FIXNUM:
+            value1 = get_fixnum_value(obj1);
+            break;
+        case REALNUM:
+            value1 = get_realnum_value(obj1);
+            break;
+        default:
+            return false;
+    }
+
+    switch (obj2->type)
+    {
+        case FIXNUM:
+            value2 = get_fixnum_value(obj2);
+            break;
+        case REALNUM:
+            value2 = get_realnum_value(obj2);
+            break;
+        default:
+            return false;
+    }
+
+    return (value1 <= value2) ? true : false;
+}
+
+object *is_number_gteq_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    double value1, value2;
+
+    switch (obj1->type)
+    {
+        case FIXNUM:
+            value1 = get_fixnum_value(obj1);
+            break;
+        case REALNUM:
+            value1 = get_realnum_value(obj1);
+            break;
+        default:
+            return false;
+    }
+
+    switch (obj2->type)
+    {
+        case FIXNUM:
+            value2 = get_fixnum_value(obj2);
+            break;
+        case REALNUM:
+            value2 = get_realnum_value(obj2);
+            break;
+        default:
+            return false;
+    }
+
+    return (value1 >= value2) ? true : false;
 }
 
 object *load_proc(object *arguments)

@@ -40,7 +40,15 @@ void init(void)
     else_symbol      = make_symbol("else");
 
     /* Booleans */
-    not_symbol       = make_symbol("not");
+    and_symbol       = make_symbol("and");
+    or_symbol        = make_symbol("or");
+
+    /* Predicates */
+    is_number_symbol   = make_symbol("number?");
+    is_complex_symbol  = make_symbol("complex?");
+    is_real_symbol     = make_symbol("real?");
+    is_rational_symbol = make_symbol("rational?");
+    is_integer_symbol  = make_symbol("integer?");
 
     /* Equivalency predicates */
     eqv_symbol       = make_symbol("eqv?");
@@ -48,6 +56,10 @@ void init(void)
     string_eq_symbol = make_symbol("string=?");
     char_eq_symbol   = make_symbol("char=?");
     num_eq_symbol    = make_symbol("=");
+    num_lt_symbol    = make_symbol("<");
+    num_gt_symbol    = make_symbol(">");
+    num_lteq_symbol  = make_symbol("<=");
+    num_gteq_symbol  = make_symbol(">=");
 
     /* File operations */
     load_symbol = make_symbol("load");

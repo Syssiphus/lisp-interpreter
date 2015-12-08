@@ -42,15 +42,20 @@ void init(void)
     and_symbol       = make_symbol("and");
     or_symbol        = make_symbol("or");
 
+    /* Input/Output */
+    current_input_port_symbol  = make_symbol("current-input-port");
+    current_output_port_symbol = make_symbol("current-output-port");
+    write_char_symbol          = make_symbol("write-char");
+
     /* The global environment */
     the_empty_environment = the_empty_list;
     the_global_environment = make_environment();
 
     /* Input/Output ports */
-    define_variable(make_symbol("current-input-port"), 
+    define_variable(current_input_port_symbol, 
             make_input_port(stdin),
             the_global_environment);
-    define_variable(make_symbol("current-output-port"), 
+    define_variable(current_output_port_symbol, 
             make_output_port(stdout),
             the_global_environment);
 }

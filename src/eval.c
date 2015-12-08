@@ -133,6 +133,22 @@ tailcall:
         expr = car(expr);
         goto tailcall;
     }
+    else if (is_tagged_list(expr, write_char_symbol))
+    {
+        /* Implemented here because I want the environment */
+        object *port = find_variable(current_output_port_symbol, env);
+        object *character = eval(cadr(expr), env);
+
+        if(cddr(expr) != the_empty_list)
+        {
+            port = eval(caddr(expr), env);
+        }
+
+        fprintf(get_output_port_stream(port), "%c", 
+                get_character_value(character));
+
+        return ok_symbol;
+    }
     else if (is_pair_object(expr))
     {
         procedure = eval(car(expr), env);

@@ -49,6 +49,8 @@ void populate_environment(object *env)
     add_procedure("remainder", remainder_proc);
     add_procedure("modulo"   , modulo_proc);
 
+    add_procedure("floor"    , floor_proc);
+
     add_procedure("mem-usage", mem_usage_proc);
 
     add_procedure("number?"  , is_number_proc);
@@ -67,7 +69,13 @@ void populate_environment(object *env)
     add_procedure("<="      , is_number_lteq_proc);
     add_procedure(">="      , is_number_gteq_proc);
 
-    add_procedure("load"    , load_proc);
+    add_procedure("load"      , load_proc);
+    add_procedure("write-char", write_char_proc);
+
+    add_procedure("open-input-file" , open_input_file_proc);
+    add_procedure("open-output-file", open_output_file_proc);
+    add_procedure("input-port?"     , is_input_port_proc);
+    add_procedure("output-port?"    , is_output_port_proc);
 
     add_procedure("error"   , error_proc);
     add_procedure("quit"    , quit_proc);

@@ -45,3 +45,6 @@ object *else_symbol;
 object *and_symbol;
 object *or_symbol;
 
+object *current_input_port;
+object *current_output_port;
+

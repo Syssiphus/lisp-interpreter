@@ -289,6 +289,18 @@ object *modulo_proc(object *arguments)
     return make_fixnum(result);
 }
 
+object *floor_proc(object *arguments)
+{
+    if (is_fixnum_object(car(arguments)))
+    {
+        return car(arguments);
+    }
+    else
+    {
+        return make_fixnum(floor(get_realnum_value(car(arguments))));
+    }
+}
+
 object *mem_usage_proc(object *obj)
 {
     return make_fixnum(memory_usage());
@@ -615,6 +627,53 @@ object *load_proc(object *arguments)
     }
 
     return result;
+}
+
+object *write_char_proc(object *arguments)
+{
+    char c = get_character_value(car(arguments));
+    fprintf(stdout, "%c", c);
+    return true;
+}
+
+object *open_input_file_proc(object *arguments)
+{
+    FILE * input_file;
+    const char * filename = get_string_value(car(arguments));
+
+    input_file = fopen(filename, "r");
+    if ( ! input_file)
+    {
+        return make_error("Unable to open input file '%s'. (%s)"
+                , filename
+                , strerror(errno));
+    }
+    return make_input_port(input_file);
+}
+
+object *open_output_file_proc(object *arguments)
+{
+    FILE * output_file;
+    const char * filename = get_string_value(car(arguments));
+
+    output_file = fopen(filename, "w");
+    if ( ! output_file)
+    {
+        return make_error("Unable to open output file '%s'. (%s)"
+                , filename
+                , strerror(errno));
+    }
+    return make_output_port(output_file);
+}
+
+object *is_input_port_proc(object *arguments)
+{
+    return is_input_port_object(car(arguments)) ? true : false;
+}
+
+object *is_output_port_proc(object *arguments)
+{
+    return is_output_port_object(car(arguments)) ? true : false;
 }
 
 object *error_proc(object *arguments)

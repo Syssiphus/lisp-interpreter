@@ -69,6 +69,30 @@ void write(FILE *out, object *obj)
     {
         ; /* Nothing */
     }
+    else if (is_input_port_object(obj))
+    {
+        FILE * port = get_input_port_stream(obj);
+        if (port == stdin)
+        {
+            fprintf(out, "<input port stdin>");
+        }
+        else
+        {
+            fprintf(out, "<input port %p>", port);
+        }
+    }
+    else if (is_output_port_object(obj))
+    {
+        FILE * port = get_output_port_stream(obj);
+        if (port == stdout)
+        {
+            fprintf(out, "<input port stdout>");
+        }
+        else
+        {
+            fprintf(out, "<input port %p>", port);
+        }
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknown object '%s'\n",

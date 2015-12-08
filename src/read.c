@@ -38,6 +38,7 @@ char maybe_many_of(parser_t *p, func_t func);
 char one_of(parser_t *p, func_t func);
 char maybe_one_of(parser_t *p, func_t func);
 char char_of(parser_t *p, const char c);
+char any_char(parser_t *p);
 char follows_one_of(parser_t *p, func_t func);
 char follows_char_of(parser_t *p, const char c);
 
@@ -215,6 +216,12 @@ char char_of(parser_t *p, const char c)
     return 0;
 }
 
+char any_char(parser_t *p)
+{
+    get_char(p);
+    return 1;
+}
+
 char string_of(parser_t *p, const char *str)
 {
     size_t s = strlen(str);
@@ -380,9 +387,7 @@ object *parse_boolean(parser_t *p)
 
 object *parse_character(parser_t *p)
 {
-    if (char_of(p, '#') && char_of(p, '\\') 
-            && (one_of(p, isalpha) || one_of(p, isdigit) 
-                || char_of(p, ' ') || char_of(p, '\n')))
+    if (char_of(p, '#') && char_of(p, '\\') && any_char(p))
     {
         if (follows_one_of(p, is_delimiter))
         {

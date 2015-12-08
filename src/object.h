@@ -16,6 +16,8 @@ typedef enum
 , COMPOUND_PROC  /* Compound procedure */
 , THE_EMPTY_LIST /* The empty list object '() */
 , ERROR          /* Error object */
+, INPUT_PORT     /* Input port object */
+, OUTPUT_PORT    /* Output port object */
 , END_OF_FILE    /* End of file type (no idea if this is good)*/
 } object_type;
 
@@ -71,6 +73,16 @@ typedef struct object
         {
             char * message;
         } error;
+
+        struct
+        {
+            FILE *stream;
+        } input_port;
+
+        struct
+        {
+            FILE *stream;
+        } output_port;
 
         struct
         {
@@ -131,6 +143,16 @@ primitive_proc_t get_primitive_proc_value(object *obj);
 object *make_eof(FILE *which);
 char is_eof_object(object *obj);
 FILE *get_eof_stream(object *obj);
+
+object *make_input_port(FILE *in);
+char is_input_port_object(object *obj);
+FILE *get_input_port_stream(object *obj);
+void close_input_port(object *obj);
+
+object *make_output_port(FILE *out);
+char is_output_port_object(object *obj);
+FILE *get_output_port_stream(object *obj);
+void close_output_port(object *obj);
 
 object *make_lambda(object *arguments, object *body);
 object *make_begin(object *obj);

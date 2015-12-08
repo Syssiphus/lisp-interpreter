@@ -1,7 +1,9 @@
 #include "globals.h"
 #include "memory.h"
+#include "object.h"
 
 object *make_environment(void);
+void define_variable(object *symbol, object *value, object *env);
 
 void init(void)
 {
@@ -43,5 +45,13 @@ void init(void)
     /* The global environment */
     the_empty_environment = the_empty_list;
     the_global_environment = make_environment();
+
+    /* Input/Output ports */
+    define_variable(make_symbol("current-input-port"), 
+            make_input_port(stdin),
+            the_global_environment);
+    define_variable(make_symbol("current-output-port"), 
+            make_output_port(stdout),
+            the_global_environment);
 }
 

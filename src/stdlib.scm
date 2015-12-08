@@ -1,3 +1,5 @@
+;; Functions from the R5RS standard
+
 (define (caar x) (car (car x)))
 (define (cadr x) (car (cdr x)))
 (define (cdar x) (cdr (car x)))
@@ -64,10 +66,67 @@
       (for-each f (cdr l)))))
 
 (define (not x)
-  (if (and (boolean? x) (eqv? x #f))
+  (if (and (boolean? x) 
+           (eqv? x #f))
     #t
     #f))
 
+(define (zero? x)
+  (if (and (number? x) 
+           (= x 0))
+    #t
+    #f))
+
+(define (positive? x)
+  (if (and (number? x) 
+           (> x 0))
+    #t
+    #f))
+
+(define (negative? x)
+  (if (and (number? x) 
+           (< x 0))
+    #t
+    #f))
+
+(define (odd? x)
+  (if (and (integer? x)
+           (= (remainder x 2) 1))
+    #t
+    #f))
+
+(define (even? x)
+  (if (and (integer? x)
+           (= (remainder x 2) 0))
+    #t
+    #f))
+
+(define (max x y)
+  (if (> x y)
+    x
+    y))
+
+(define (min x y)
+  (if (< x y)
+    x
+    y))
+
+(define (abs x)
+  (if (negative? x)
+    (* x -1)
+    x))
+
+(define (list-tail l k)
+  (if (zero? k)
+    l
+    (list-tail (cdr l) (- k 1))))
+
+(define (list-ref l k)
+  (if (zero? k)
+    (car l)
+    (list-ref (cdr l) (- k 1))))
+
+;; Some additional functions
 (define (assert x y)
   (if (eq? x y)
     #t

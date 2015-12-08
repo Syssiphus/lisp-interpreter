@@ -271,6 +271,72 @@ FILE *get_eof_stream(object *obj)
     return obj->data.end_of_file.stream;
 }
 
+void close_input_port_on_collect(void *obj, void *arg)
+{
+    close_input_port((object *)obj);
+}
+
+object *make_input_port(FILE *in)
+{
+    object *obj;
+    obj = alloc_with_finalizer(close_input_port_on_collect);
+    obj->type = INPUT_PORT;
+    obj->data.input_port.stream = in;
+    return obj;
+}
+
+char is_input_port_object(object *obj)
+{
+    return obj->type == INPUT_PORT;
+}
+
+FILE *get_input_port_stream(object *obj)
+{
+    return obj->data.input_port.stream;
+}
+
+void close_input_port(object *obj)
+{
+    if (obj->data.input_port.stream)
+    {
+        fclose(obj->data.input_port.stream);
+        obj->data.input_port.stream = NULL;
+    }
+}
+
+void close_output_port_on_collect(void *obj, void *arg)
+{
+    close_output_port((object *)obj);
+}
+
+object *make_output_port(FILE *out)
+{
+    object *obj;
+    obj = alloc_with_finalizer(close_output_port_on_collect);
+    obj->type = OUTPUT_PORT;
+    obj->data.output_port.stream = out;
+    return obj;
+}
+
+char is_output_port_object(object *obj)
+{
+    return obj->type == OUTPUT_PORT;
+}
+
+FILE *get_output_port_stream(object *obj)
+{
+    return obj->data.output_port.stream;
+}
+
+void close_output_port(object *obj)
+{
+    if (obj->data.output_port.stream)
+    {
+        fclose(obj->data.output_port.stream);
+        obj->data.output_port.stream = NULL;
+    }
+}
+
 object *make_lambda(object *arguments, object *body)
 {
     return cons(lambda_symbol, cons(arguments, body));

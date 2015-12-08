@@ -39,6 +39,8 @@ object *quotient_proc(object *arguments);
 object *remainder_proc(object *arguments);
 object *modulo_proc(object *arguments);
 
+object *floor_proc(object *arguments);
+
 object *length_proc(object *arguments);
 
 object *mem_usage_proc(object *obj);
@@ -60,6 +62,13 @@ object *is_number_lteq_proc(object *arguments);
 object *is_number_gteq_proc(object *arguments);
 
 object *load_proc(object *arguments);
+
+object *write_char_proc(object *arguments);
+
+object *open_input_file_proc(object *arguments);
+object *open_output_file_proc(object *arguments);
+object *is_input_port_proc(object *arguments);
+object *is_output_port_proc(object *arguments);
 
 object *error_proc(object *arguments);
 object *quit_proc(object *arguments);

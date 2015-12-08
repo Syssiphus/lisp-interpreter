@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 
 #include "globals.h"
 #include "builtins.h"
@@ -43,6 +44,45 @@ void set_car(object *dst, object *obj)
 void set_cdr(object *dst, object *obj)
 {
     dst->data.pair.cdr = obj;
+}
+
+object *cons_proc(object *arguments)
+{
+    object *car_obj = car(arguments);
+    object *cdr_obj = cadr(arguments);
+    return cons(car_obj, cdr_obj);
+}
+
+object *car_proc(object *arguments)
+{
+    return car(car(arguments));
+}
+
+object *cdr_proc(object *arguments)
+{
+    return cdr(car(arguments));
+}
+
+object *set_car_proc(object *arguments)
+{
+    set_car(car(arguments), cadr(arguments));
+    return ok_symbol;
+}
+
+object *set_cdr_proc(object *arguments)
+{
+    set_cdr(car(arguments), cadr(arguments));
+    return ok_symbol;
+}
+
+object *is_pair_proc(object *arguments)
+{
+    return is_pair_object(car(arguments)) ? true : false;
+}
+
+object *is_boolean_proc(object *arguments)
+{
+    return is_boolean_object(car(arguments)) ? true : false;
 }
 
 object *length_proc(object *arguments)
@@ -194,6 +234,59 @@ object *quotient_proc(object *arguments)
     }
     result = value1 / value2;
     return need_realnum ? make_realnum(result) : make_fixnum(result);
+}
+
+object *remainder_proc(object *arguments)
+{
+    char need_realnum = 0;
+    double result, value1, value2;
+    if (is_the_empty_list(arguments) 
+            || is_the_empty_list(cdr(arguments))
+            || ! is_the_empty_list(cddr(arguments)))
+    {
+        return make_error("'remainder' needs exactly 2 arguments.");
+    }
+    if (is_realnum_object(car(arguments)))
+    {
+        value1 = get_realnum_value(car(arguments));
+        need_realnum = 1;
+    }
+    else
+    {
+        value1 = get_fixnum_value(car(arguments));
+    }
+    if (is_realnum_object(cadr(arguments)))
+    {
+        value2 = get_realnum_value(cadr(arguments));
+        need_realnum = 1;
+    }
+    else
+    {
+        value2 = get_fixnum_value(cadr(arguments));
+    }
+    result = fmod(value1, value2);
+    return need_realnum ? make_realnum(result) : make_fixnum(result);
+}
+
+object *modulo_proc(object *arguments)
+{
+    long result, value1, value2;
+    if (is_the_empty_list(arguments) 
+            || is_the_empty_list(cdr(arguments))
+            || ! is_the_empty_list(cddr(arguments)))
+    {
+        return make_error("'modulo' needs exactly 2 arguments.");
+    }
+    if ( ! is_fixnum_object(car(arguments)) 
+            || ! is_fixnum_object(cadr(arguments)))
+    {
+        return make_error("'modulo' needs integer arguments.");
+    }
+
+    value1 = get_fixnum_value(car(arguments));
+    value2 = get_fixnum_value(cadr(arguments));
+    result = value1 % value2;
+    return make_fixnum(result);
 }
 
 object *mem_usage_proc(object *obj)
@@ -522,6 +615,22 @@ object *load_proc(object *arguments)
     }
 
     return result;
+}
+
+object *error_proc(object *arguments)
+{
+    fprintf(stderr, "Error: %s\n", get_string_value(car(arguments)));
+    exit(1);
+}
+
+object *quit_proc(object *arguments)
+{
+    exit(0);
+}
+
+object *exit_proc(object *arguments)
+{
+    exit(get_fixnum_value(car(arguments)));
 }
 
 

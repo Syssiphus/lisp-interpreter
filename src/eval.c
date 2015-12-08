@@ -128,9 +128,9 @@ tailcall:
             {
                 return false;
             }
-            expr = cdr(arguments);
+            expr = cdr(expr);
         }
-        expr = car(arguments);
+        expr = car(expr);
         goto tailcall;
     }
     else if (is_pair_object(expr))

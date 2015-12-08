@@ -22,10 +22,22 @@ void set_cdr(object *dst, object *obj);
 
 #define cadddr(x) car(cdr(cdr(cdr(x))))
 
+object *cons_proc(object *arguments);
+object *car_proc(object *arguments);
+object *cdr_proc(object *arguments);
+object *set_car_proc(object *arguments);
+object *set_cdr_proc(object *arguments);
+
+object *is_pair_proc(object *arguments);
+object *is_boolean_proc(object *arguments);
+
 object *add_proc(object *arguments);
 object *sub_proc(object *arguments);
 object *mul_proc(object *arguments);
+
 object *quotient_proc(object *arguments);
+object *remainder_proc(object *arguments);
+object *modulo_proc(object *arguments);
 
 object *length_proc(object *arguments);
 
@@ -48,4 +60,9 @@ object *is_number_lteq_proc(object *arguments);
 object *is_number_gteq_proc(object *arguments);
 
 object *load_proc(object *arguments);
+
+object *error_proc(object *arguments);
+object *quit_proc(object *arguments);
+object *exit_proc(object *arguments);
+
 

@@ -6,26 +6,19 @@ import sys, os, subprocess
 not_test = "(assert (not #f) #t)"
 
 testlist = {
-      # The little schemer chapter 1
-      # atoms
-      "tls_atom1" : "(assert-true (atom? 'atom))"
-    , "tls_atom2" : "(assert-true (atom? 'turkey))"
-    , "tls_atom3" : "(assert-true (atom? 1492))"
-    , "tls_atom4" : "(assert-true (atom? 'u))"
-    , "tls_atom5" : "(assert-true (atom? '*abc$))"
-
-      #lists
-    , "tls_list1" : "(assert-true (pair? '(atom)))"
-    , "tls_list2" : "(assert-true (pair? '(atom turkey or)))"
-    , "tls_list3" : "(assert (length '(((how) are) ((you) (doing so)) far)) 3)"
-    , "tls_list4" : "(assert-true (pair? '()))"
-    , "tls_list5" : "(assert-false (atom? '()))"
-    , "tls_list6" : "(assert-true (pair? '(() () () ())))"
-
-      # car
-    , "tls_car1"  : "(assert (car '(a b c)) 'a)"
-    , "tls_car2"  : "(assert (car '((a b c) x y z)) '(a b c))"
-    }
+        # number predicates
+        "number? 1" : "(assert-true (number? 233))"
+      , "number? 2" : "(assert-true (number? -23))"
+      , "number? 3" : "(assert-true (number? 23.0))"
+      , "number? 4" : "(assert-true (number? -23.0))"
+      , "number? 5" : "(assert-false (number? 'abc))"
+      , "number? 6" : "(assert-false (number? #t))"
+      , "complex? 1" : "(assert-true (complex? 3+4i)"
+      , "complex? 2" : "(assert-true (complex? 3)"
+      , "real 1" : "(assert-true (real? 3))"
+      , "real 2" : "(assert-true (real? -2.5+0.0i))"
+      , "real 3" : "(assert-true (real? #e1e10))"
+      }
 
 interpreter = "%s/../scheme" % os.path.dirname(sys.argv[0])
 result_file = "%s/result.txt" % os.path.dirname(sys.argv[0])
@@ -41,7 +34,7 @@ def escape_test_string(s):
     return retval
 
 def wrap_test(test):
-    retval = "(begin (load \"src/stdlib.scm\") %s (quit))" % test
+    retval = "(begin (load \"legacy_src/stdlib.scm\") %s (quit))" % test
     return retval
 
 def interpreter_cmd():
@@ -88,6 +81,8 @@ def execute_testlist(tests):
             # test good
             sys.stdout.write(" OK.\n")
             ok_count += 1
+
+        sys.stdout.flush()
 
         os.remove(result_file)
         os.remove(error_file)

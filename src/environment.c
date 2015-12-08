@@ -32,12 +32,22 @@ void populate_environment(object *env)
     define_variable(make_symbol(scheme_name), \
             make_primitive_proc(c_name), env);
 
+    add_procedure("cons"    , cons_proc);
+    add_procedure("car"     , car_proc);
+    add_procedure("cdr"     , cdr_proc);
+    add_procedure("set-car!", set_car_proc);
+    add_procedure("set-cdr!", set_cdr_proc);
+
+    add_procedure("pair?"   , is_pair_proc);
+    add_procedure("boolean?" , is_boolean_proc);
+
     add_procedure("+"       , add_proc);
     add_procedure("-"       , sub_proc);
     add_procedure("*"       , mul_proc);
-    add_procedure("quotient", quotient_proc);
 
-    add_procedure("length"  , length_proc);
+    add_procedure("quotient" , quotient_proc);
+    add_procedure("remainder", remainder_proc);
+    add_procedure("modulo"   , modulo_proc);
 
     add_procedure("mem-usage", mem_usage_proc);
 
@@ -58,6 +68,10 @@ void populate_environment(object *env)
     add_procedure(">="      , is_number_gteq_proc);
 
     add_procedure("load"    , load_proc);
+
+    add_procedure("error"   , error_proc);
+    add_procedure("quit"    , quit_proc);
+    add_procedure("exit"    , exit_proc);
 }
 
 object *extend_environment(object *vars, object *vals, object *base_env)

@@ -30,7 +30,7 @@
 (define (cddddr x) (cdr (cdr (cdr (cdr x)))))
 
 (define (null? exp)
-  (if (eqv? exp '())
+  (if (eqv? (car exp) '())
     #t #f))
 
 (define (length items)
@@ -38,7 +38,7 @@
     (if (null? a)
       count
       (iter (cdr a) (+ 1 count))))
-  (iter items 0))
+  (iter (car items) 0))
 
 (define (append list1 list2)
   (if (null? list1)
@@ -50,7 +50,7 @@
     (if (pair? in)
       (iter (cdr in) (cons (car in) out))
       out))
-  (iter l '()))
+  (iter (car l) '()))
 
 (define (map proc items)
   (if (null? items)
@@ -66,38 +66,38 @@
       (for-each f (cdr l)))))
 
 (define (not x)
-  (if (and (boolean? x) 
-           (eqv? x #f))
+  (if (and (boolean? (car x)) 
+           (eqv? (car x) #f))
     #t
     #f))
 
 (define (zero? x)
-  (if (and (number? x) 
-           (= x 0))
+  (if (and (number? (car x)) 
+           (= (car x) 0))
     #t
     #f))
 
 (define (positive? x)
-  (if (and (number? x) 
-           (> x 0))
+  (if (and (number? (car x)) 
+           (> (car x) 0))
     #t
     #f))
 
 (define (negative? x)
-  (if (and (number? x) 
-           (< x 0))
+  (if (and (number? (car x)) 
+           (< (car x) 0))
     #t
     #f))
 
 (define (odd? x)
-  (if (and (integer? x)
-           (= (remainder x 2) 1))
+  (if (and (integer? (car x))
+           (= (remainder (car x) 2) 1))
     #t
     #f))
 
 (define (even? x)
-  (if (and (integer? x)
-           (= (remainder x 2) 0))
+  (if (and (integer? (car x))
+           (= (remainder (car x) 2) 0))
     #t
     #f))
 
@@ -112,9 +112,9 @@
     y))
 
 (define (abs x)
-  (if (negative? x)
-    (* x -1)
-    x))
+  (if (negative? (car x))
+    (- (car x))
+    (car x)))
 
 (define (list-tail l k)
   (if (zero? k)
@@ -128,17 +128,17 @@
 
 ;; Some additional functions
 (define (assert x y)
-  (if (eq? x y)
+  (if (eqv? x y)
     #t
     (error "assert failed" x "!=" y)))
 
 (define (assert-true x)
-  (if x
+  (if (car x)
     #t
     (error "assert failed.")))
 
 (define (assert-false x)
-  (if x
+  (if (car x)
     (error "assert failed.")
     #t))
 

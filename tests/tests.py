@@ -34,7 +34,7 @@ def escape_test_string(s):
     return retval
 
 def wrap_test(test):
-    retval = "(begin (load \"legacy_src/stdlib.scm\") %s (quit))" % test
+    retval = "(begin (load \"src/stdlib.scm\") %s (quit))" % test
     return retval
 
 def interpreter_cmd():

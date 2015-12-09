@@ -160,8 +160,57 @@ tailcall:
         }
         else if (is_compound_proc_object(procedure))
         {
+            object *vars = the_empty_list;
+            object *vals = the_empty_list;
+            object *parameters = procedure->data.compound_proc.parameters;
+
+            /* Scheme R5RS page 9, procedures:
+             * - If the procedure has only one argument defined then all the 
+             *   given arguments are supplied as a list bound to that defined
+             *   argument.
+             * - If the procedure has n arguments defined the procedure has a
+             *   fixed number of arguments and the supplied values are bound
+             *   to the arguments normally
+             * - If the argument list is a dotted list then all arguments
+             *   which could not be bound to available arguments are bound as 
+             *   a list to the dotted part of the argument list.
+             */
+            if (is_the_empty_list(cdr(parameters)))
+            {
+                vars = cons(car(parameters), vars);
+                vals = cons(arguments, vals);
+            }
+            else
+            {
+                while (1)
+                {
+                    if (is_the_empty_list(parameters))
+                    {
+                        break;
+                    }
+                    else if (is_pair_object(parameters))
+                    {
+                        vars = cons(car(parameters), vars);
+                        vals = cons(car(arguments), vals);
+                        parameters = cdr(parameters);
+                        arguments = cdr(arguments);
+                    }
+                    else
+                    {
+                        vars = cons(parameters, vars);
+                        vals = cons(arguments, vals);
+                        break;
+                    }
+                }
+            }
+
+#if 0
             env = extend_environment(procedure->data.compound_proc.parameters,
                     arguments, procedure->data.compound_proc.env);
+#else
+            env = extend_environment(vars, vals, 
+                    procedure->data.compound_proc.env);
+#endif
             expr = make_begin(procedure->data.compound_proc.body);
             goto tailcall;
         }

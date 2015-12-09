@@ -15,3 +15,6 @@ legacy_scheme.exe
 *.stackdump
 
 ._*
+
+tests/error.txt
+tests/result.txt

@@ -167,7 +167,8 @@ tailcall:
             /* Scheme R5RS page 9, procedures:
              * - If the procedure has only one argument defined then all the 
              *   given arguments are supplied as a list bound to that defined
-             *   argument.
+             *   argument. (FIXME: this does not seem to be true, at least 
+             *   chicken scheme behaves different)
              * - If the procedure has n arguments defined the procedure has a
              *   fixed number of arguments and the supplied values are bound
              *   to the arguments normally
@@ -175,32 +176,24 @@ tailcall:
              *   which could not be bound to available arguments are bound as 
              *   a list to the dotted part of the argument list.
              */
-            if (is_the_empty_list(cdr(parameters)))
+            while (1)
             {
-                vars = cons(car(parameters), vars);
-                vals = cons(arguments, vals);
-            }
-            else
-            {
-                while (1)
+                if (is_the_empty_list(parameters))
                 {
-                    if (is_the_empty_list(parameters))
-                    {
-                        break;
-                    }
-                    else if (is_pair_object(parameters))
-                    {
-                        vars = cons(car(parameters), vars);
-                        vals = cons(car(arguments), vals);
-                        parameters = cdr(parameters);
-                        arguments = cdr(arguments);
-                    }
-                    else
-                    {
-                        vars = cons(parameters, vars);
-                        vals = cons(arguments, vals);
-                        break;
-                    }
+                    break;
+                }
+                else if (is_pair_object(parameters))
+                {
+                    vars = cons(car(parameters), vars);
+                    vals = cons(car(arguments), vals);
+                    parameters = cdr(parameters);
+                    arguments = cdr(arguments);
+                }
+                else
+                {
+                    vars = cons(parameters, vars);
+                    vals = cons(arguments, vals);
+                    break;
                 }
             }
 

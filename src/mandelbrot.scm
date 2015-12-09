@@ -1,73 +1,41 @@
-
-(define *size* '(50.0 . 50.0))
-(define *height* (cdr *size*))
-(define *width* (car *size*))
-
-(define *w* 5.0)
-(define *h* (quotient (* *w* *height*) *width*))
-
-(define *xmin* (quotient (- *w*) 2))
-(define *ymin* (quotient (- *h*) 2))
-
-(define *maxiterations* 100.0)
-
-(define *xmax* (+ *xmin* *w*))
-(define *ymax* (+ *ymin* *h*))
-
-(define *dx* (quotient (- *xmax* *xmin*) *width*))
-(define *dy* (quotient (- *ymax* *ymin*) *height*))
-
-(define *symbols* '(#\# #\0 #\\ #\o #\: #\_ #\. #\space))
-
-(define (mandelbrot)
-  (y-iter *ymin* 0 *height* '()))
-  ;;(print-mandelbrot (y-iter *ymin* 0 *height* '())))
-
-(define (print-mandelbrot m)
-  (print-mandelbrot-r m 0))
-
-(define (print-mandelbrot-r m y)
-  (if (= y *height*)
-    #t
-    (begin
-      (print-mandelbrot-line m 0)
-      (print-mandelbrot-r (list-tail m *width*) (+ y 1)))))
-
-(define (print-mandelbrot-line m x)
-  (if (= x *width*)
-    (write-char #\newline)
-    (begin
-      (write-char (get-symbol (car m)))
-      (print-mandelbrot-line (cdr m) (+ x 1)))))
-
-(define (get-symbol i)
-  (let ((percent (quotient i *maxiterations*)))
-   (let ((position (floor (* (length *symbols*) percent))))
-    (if (< position (length *symbols*))
-      (list-ref *symbols* position)
-      (error "Illegal position.")))))
-
-(define (y-iter y count end acc)
-  (if (= count end)
-    (reverse acc)
-    (y-iter (+ 1 y) (+ 1 count) end 
-            (cons (x-iter *xmin* y 0 *width* '()) acc))))
-
-(define (x-iter x y count end acc)
-  (if (= count end)
-    acc
-    (begin
-      (set! acc (iter x y x y 0 *maxiterations* acc))
-      (x-iter (+ 1 x) y (+ 1 count) end acc))))
-
-(define (iter x y a b count maxiterations acc)
-  (if (= count maxiterations)
-    acc
-    (let ((aa (* a a))
-          (bb (* b b))
-          (twoab (* 2.0 a b)))
-      (if (> (+ aa bb) 16.0)
-        (cons count acc)
-        (iter x y (+ (- aa bb) x) (+ twoab y) (+ 1 count) maxiterations acc)))))
-      
-
+(define x-centre -0.5)
+(define y-centre 0.0)
+(define width 4.0)
+(define i-max 800)
+(define j-max 600)
+(define n 100)
+(define r-max 2.0)
+(define file "out.pgm")
+(define colour-max 255)
+(define pixel-size (/ width i-max))
+(define x-offset (- x-centre (* 0.5 pixel-size (+ i-max 1))))
+(define y-offset (+ y-centre (* 0.5 pixel-size (+ j-max 1))))
+ 
+(define (inside? z)
+  (define (*inside? z-0 z n)
+    (and (< (magnitude z) r-max)
+         (or (= n 0)
+             (*inside? z-0 (+ (* z z) z-0) (- n 1)))))
+  (*inside? z 0 n))
+ 
+(define (boolean->integer b)
+  (if b colour-max 0))
+ 
+(define (pixel i j)
+  (boolean->integer
+    (inside?
+      (make-rectangular (+ x-offset (* pixel-size i))
+                        (- y-offset (* pixel-size j))))))
+ 
+(define (plot)
+  (with-output-to-file file
+    (lambda ()
+      (begin (display "P2") (newline)
+             (display i-max) (newline)
+             (display j-max) (newline)
+             (display colour-max) (newline)
+             (do ((j 1 (+ j 1))) ((> j j-max))
+                 (do ((i 1 (+ i 1))) ((> i i-max))
+                     (begin (display (pixel i j)) (newline))))))))
+ 
+(plot)

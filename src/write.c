@@ -65,6 +65,10 @@ void write(FILE *out, object *obj)
         fprintf(out, "<primitive procedure %p>", 
                 get_primitive_proc_value(obj));
     }
+    else if (is_compound_proc_object(obj))
+    {
+        fprintf(out, "<compound procedure>");
+    }
     else if (is_eof_object(obj))
     {
         ; /* Nothing */
@@ -86,16 +90,16 @@ void write(FILE *out, object *obj)
         FILE * port = get_output_port_stream(obj);
         if (port == stdout)
         {
-            fprintf(out, "<input port stdout>");
+            fprintf(out, "<output port stdout>");
         }
         else
         {
-            fprintf(out, "<input port %p>", port);
+            fprintf(out, "<output port %p>", port);
         }
     }
     else
     {
-        fprintf(stderr, "%s, %d: Cannot write unknown object '%s'\n",
+        fprintf(stderr, "%s, %d: Cannot write unknown object. '%s'\n",
                 __FILE__, __LINE__, __func__);
         exit(1);
     }

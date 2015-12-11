@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include "globals.h"
 #include "eval.h"
@@ -18,6 +19,12 @@ char is_if(object *obj);
 char is_cond(object *obj);
 char is_let(object *obj);
 char is_assignment(object *obj);
+char is_write_char(object *obj);
+char is_with_output_to_file(object *obj);
+char is_or(object *obj);
+char is_and(object *obj);
+char is_do(object *obj);
+
 object *lambda_parameters(object *obj);
 object *lambda_body(object *obj);
 object *text_of_quotation(object *obj);
@@ -28,6 +35,12 @@ object *let_arguments(object *obj);
 
 object *eval_assignment(object *obj, object *env);
 object *eval_cond(object *obj, object *env);
+
+object *do_variables(object *expr);
+object *do_initializers(object *expr);
+object *do_steps(object *expr);
+object *do_termination(object *expr);
+object *do_body(object *expr);
 
 object *eval(object *expr, object *env)
 {
@@ -97,7 +110,7 @@ tailcall:
         expr = car(expr);
         goto tailcall;
     }
-    else if (is_tagged_list(expr, or_symbol))
+    else if (is_or(expr))
     {
         expr = cdr(expr);
         if (is_the_empty_list(expr))
@@ -115,7 +128,7 @@ tailcall:
         expr = car(expr);
         goto tailcall;
     }
-    else if (is_tagged_list(expr, and_symbol))
+    else if (is_and(expr))
     {
         expr = cdr(expr);
         if (is_the_empty_list(expr))
@@ -133,9 +146,9 @@ tailcall:
         expr = car(expr);
         goto tailcall;
     }
-    else if (is_tagged_list(expr, write_char_symbol))
+    else if (is_write_char(expr))
     {
-        /* Implemented here because I want the environment */
+        /* Implemented here because we need the environment */
         object *port = find_variable(current_output_port_symbol, env);
         object *character = eval(cadr(expr), env);
 
@@ -149,9 +162,106 @@ tailcall:
 
         return ok_symbol;
     }
+    else if (is_with_output_to_file(expr))
+    {
+        FILE *outputfile;
+        object *vars, *vals, *compound;
+        object *old_port, *new_port, *result;
+
+        arguments = cdr(expr);
+
+        if ( ! is_string_object(eval(car(arguments), env)))
+        {
+            return make_error("Wrong argument type for argument 1.");
+        }
+
+        outputfile = fopen(get_string_value(car(arguments)), "w");
+        if ( ! outputfile)
+        {
+            return make_error("Unable to open file '%s' (%s)",
+                    get_string_value(car(arguments)),
+                    strerror(errno));
+        }
+
+        /* - Save old output port
+         * - Set new output port
+         * - Create lambda from body
+         * - Add resulting compound procedure to env
+         * - Call procedure
+         */
+        compound = cons(
+                eval(make_lambda(the_empty_list, cddr(expr)), env),
+                the_empty_list);
+
+        vars = cons(make_symbol("__anonymous_func__"), the_empty_list);
+        vals = compound;
+        env = extend_environment(vars, vals, env);
+
+        expr = cons(make_symbol("__anonymous_func__"), the_empty_list);
+
+        old_port = find_variable(current_output_port_symbol, env);
+        if (is_error_object(old_port))
+        {
+            return old_port; /* The error */
+        }
+
+        new_port = make_output_port(outputfile);
+        result = set_variable(
+                current_output_port_symbol, 
+                new_port,
+                env);
+        if (is_error_object(result))
+        {
+            return result; /* The error */
+        }
+
+        result = eval(expr, env);
+
+        set_variable(
+                current_output_port_symbol, 
+                old_port,
+                env); /* Set value back to the old port */
+        close_output_port(new_port);
+
+        return result;
+    }
+    else if (is_do(expr))
+    {
+        object *steps;
+        object *termination;
+        object *body;
+        object *result;
+
+        /* Initialize the 'local' variables */
+        env = extend_environment(
+                do_variables(expr),
+                do_initializers(expr),
+                env);
+
+        /* Extract infos */
+        steps = do_steps(expr);
+        termination = do_termination(expr);
+        body = do_body(expr);
+
+        while(is_false(eval(make_begin(termination), env)))
+        {
+            /* Do loop */
+            /* - Execute the body of the loop */
+            result = eval(make_begin(body), env);
+
+            /* - Execute the steppers */
+            eval(make_begin(steps), env);
+        }
+        return result;
+    }
     else if (is_pair_object(expr))
     {
         procedure = eval(car(expr), env);
+        if (is_error_object(procedure))
+        {
+            return procedure; /* return the error */
+        }
+
         arguments = list_of_values(cdr(expr), env);
 
         if (is_primitive_proc_object(procedure))
@@ -197,13 +307,8 @@ tailcall:
                 }
             }
 
-#if 0
-            env = extend_environment(procedure->data.compound_proc.parameters,
-                    arguments, procedure->data.compound_proc.env);
-#else
             env = extend_environment(vars, vals, 
                     procedure->data.compound_proc.env);
-#endif
             expr = make_begin(procedure->data.compound_proc.body);
             goto tailcall;
         }
@@ -384,6 +489,82 @@ object *make_cond(object *cond)
 object *eval_cond(object *obj, object *env)
 {
     return make_cond(cdr(obj));
+}
+
+char is_write_char(object *obj)
+{
+    return is_tagged_list(obj, write_char_symbol);
+}
+
+char is_with_output_to_file(object *obj)
+{
+    return is_tagged_list(obj, with_output_to_file_symbol);
+}
+
+char is_or(object *obj)
+{
+    return is_tagged_list(obj, or_symbol);
+}
+
+char is_and(object *obj)
+{
+    return is_tagged_list(obj, and_symbol);
+}
+
+char is_do(object *obj)
+{
+    return is_tagged_list(obj, do_symbol);
+}
+
+object *do_variables(object *expr)
+{
+    object *obj = cadr(expr);
+    object *vars = the_empty_list;
+
+    while ( ! is_the_empty_list(obj))
+    {
+        vars = cons(caar(obj), vars);
+        obj = cdr(obj);
+    }
+    return vars;
+}
+
+object *do_initializers(object *expr)
+{
+    object *obj = cadr(expr);
+    object *inits = the_empty_list;
+
+    while ( ! is_the_empty_list(obj))
+    {
+        inits = cons(cadar(obj), inits);
+        obj = cdr(obj);
+    }
+    return inits;
+}
+
+object *do_steps(object *expr)
+{
+    object *obj = cadr(expr);
+    object *steps = the_empty_list;
+
+    while ( ! is_the_empty_list(obj))
+    {
+        /* Construct a 'set!' statement with the
+         * identifier and the expression to use on the identifier */
+        steps = cons(make_assignment(caar(obj), caddar(obj)), steps);
+        obj = cdr(obj);
+    }
+    return steps;
+}
+
+object *do_termination(object *expr)
+{
+    return caddr(expr);
+}
+
+object *do_body(object *expr)
+{
+    return cdddr(expr);
 }
 
 

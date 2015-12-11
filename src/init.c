@@ -32,6 +32,7 @@ void init(void)
     ok_symbol        = make_symbol("ok");
     lambda_symbol    = make_symbol("lambda");
     begin_symbol     = make_symbol("begin");
+    do_symbol        = make_symbol("do");
 
     /* Conditionals */
     if_symbol        = make_symbol("if");
@@ -42,7 +43,9 @@ void init(void)
     and_symbol       = make_symbol("and");
     or_symbol        = make_symbol("or");
 
+
     /* Input/Output */
+    with_output_to_file_symbol = make_symbol("with-output-to-file");
     current_input_port_symbol  = make_symbol("current-input-port");
     current_output_port_symbol = make_symbol("current-output-port");
     write_char_symbol          = make_symbol("write-char");

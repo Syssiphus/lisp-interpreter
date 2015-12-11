@@ -116,6 +116,8 @@
     (- x)
     x))
 
+(define (list . args) args)
+
 (define (list-tail l k)
   (if (zero? k)
     l
@@ -125,6 +127,24 @@
   (if (zero? k)
     (car l)
     (list-ref (cdr l) (- k 1))))
+
+;; Display of information
+(define (newline)
+  (write-char #\newline))
+
+(define (display str)
+
+  (define (str-iter str pos len)
+    (if (zero? (- pos len))
+      #t
+      (begin
+        (write-char (string-ref str pos))
+        (str-iter str (+ pos 1) len))))
+
+  (cond ((char? str) (write-char str))
+        ((string? str) (str-iter str 0 (string-length str)))
+        ((number? str) (display (number->string str)))
+        (else #f)))
 
 ;; Some additional functions
 (define (assert x y)
@@ -141,5 +161,8 @@
   (if x
     (error "assert failed.")
     #t))
+
+(define (display-test)
+  (display a-string))
 
 

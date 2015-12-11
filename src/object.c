@@ -31,7 +31,7 @@ long get_fixnum_value(object *obj)
     if (obj->type != FIXNUM)
     {
         fprintf(stderr, "Object is not a FIXNUM object.\n");
-        exit(1);
+        __builtin_trap();
     }
 
     return obj->data.fixnum.value;
@@ -58,6 +58,33 @@ double get_realnum_value(object *obj)
     return obj->data.realnum.value;
 }
 
+/** COMPLEX NUMBERS */
+object *make_complexnum(double real, double imag)
+{
+    object *obj;
+
+    obj = alloc_object();
+    obj->type = COMPLEXNUM;
+    obj->data.complexnum.real = real;
+    obj->data.complexnum.imag = imag;
+    return obj;
+}
+
+char is_complexnum_object(object *obj)
+{
+    return obj->type == COMPLEXNUM;
+}
+
+double get_complexnum_real_value(object *obj)
+{
+    return obj->data.complexnum.real;
+}
+
+double get_complexnum_imag_value(object *obj)
+{
+    return obj->data.complexnum.imag;
+}
+
 /** CHARACTERS */
 object *make_character(int c)
 {
@@ -79,7 +106,7 @@ int get_character_value(object *obj)
     if (obj->type != CHARACTER)
     {
         fprintf(stderr, "Object is not a CHARACTER object.\n");
-        exit(1);
+        __builtin_trap();
     }
 
     return obj->data.character.value;
@@ -96,7 +123,7 @@ object *make_string(char *str)
     if ( ! obj->data.string.value)
     {
         fprintf(stderr, "Error allocating string space for string '%s'.", str);
-        exit(1);
+        __builtin_trap();
     }
     strcpy(obj->data.string.value, str);
     obj->type = STRING;
@@ -124,7 +151,7 @@ char is_false(object *obj)
     if ( ! is_boolean_object(obj))
     {
         fprintf(stderr, "Not a boolean value.\n");
-        exit(1);
+        __builtin_trap();
     }
 
     return obj->data.boolean.value == 0;
@@ -158,7 +185,7 @@ object *make_symbol(char *str)
     {
         fprintf(stderr, "Error allocating string space for symbol string "
                 "'%s'.", str);
-        exit(1);
+        __builtin_trap();
     }
     strcpy(obj->data.symbol.value, str);
     symbol_table = cons(obj, symbol_table);
@@ -175,7 +202,7 @@ char *get_symbol_value(object *obj)
     if ( ! is_symbol_object(obj))
     {
         fprintf(stderr, "Not a symbol object.\n");
-        exit(1);
+        __builtin_trap();
     }
 
     return obj->data.symbol.value;
@@ -214,14 +241,15 @@ object *make_error(const char *fmt, ...)
     if ( ! obj->data.error.message)
     {
         fprintf(stderr, "Out of memory in %s().", __func__);
-        exit(1);
+        __builtin_trap();
     }
 
     va_start(args, fmt);
     vsnprintf(obj->data.error.message, ERROR_MSG_SIZE - 1, fmt, args);
     va_end(args);
 
-    return obj;
+    fprintf(stderr, "%s\n", obj->data.error.message);
+    __builtin_trap();
 }
 
 char is_error_object(object *obj)
@@ -345,6 +373,11 @@ object *make_lambda(object *arguments, object *body)
 object *make_begin(object *obj)
 {
     return cons(begin_symbol, obj);
+}
+
+object *make_assignment(object *var, object *value)
+{
+    return cons(set_symbol, cons(var, cons(value, the_empty_list)));
 }
 
 object *make_compound_proc(object *parameters, object *body, object *env)

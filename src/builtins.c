@@ -11,6 +11,19 @@
 #include "read.h"
 #include "eval.h"
 
+long _number_of_args(object *arguments)
+{
+    long nr_args = 0;
+
+    while ( ! is_the_empty_list(arguments))
+    {
+        nr_args++;
+        arguments = cdr(arguments);
+    }
+
+    return nr_args;
+}
+
 object *cons(object *a, object *b)
 {
     return make_pair(a, b);
@@ -22,8 +35,7 @@ object *car(object *obj)
     {
         return obj->data.pair.car;
     }
-    fprintf(stderr, "Not a pair object.\n");
-    exit(1);
+    return make_error("Not a pair object.");
 }
 
 object *cdr(object *obj)
@@ -32,8 +44,7 @@ object *cdr(object *obj)
     {
         return obj->data.pair.cdr;
     }
-    fprintf(stderr, "Not a pair object.\n");
-    exit(1);
+    return make_error("Not a pair object.");
 }
 
 void set_car(object *dst, object *obj)
@@ -89,15 +100,15 @@ object *length_proc(object *arguments)
 {
     long result = 0;
 
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'length' takes exactly 1 argument (PAIR).");
+    }
+
     if ( ! is_pair_object(car(arguments)))
     {
         /* We need a pair object to count */
         return make_error("'length' needs list as argument.");
-    }
-
-    if ( ! is_the_empty_list(cdr(arguments)))
-    {
-        return make_error("'length' takes exactly 1 argument (PAIR).");
     }
 
     /* Count elements */
@@ -113,7 +124,9 @@ object *add_proc(object *arguments)
 {
     char need_realnum = 0;
     double result = 0;
-    if (is_the_empty_list(arguments))
+    double imag = 0;
+
+    if (_number_of_args(arguments) == 0)
     {
         return make_error("Arguments missing");
     }
@@ -125,11 +138,21 @@ object *add_proc(object *arguments)
             summand = get_realnum_value(car(arguments));
             need_realnum = 1;
         }
-        else
+        else if (is_fixnum_object(car(arguments)))
         {
             summand = get_fixnum_value(car(arguments));
         }
-        result = result + summand;
+        else if (is_complexnum_object(car(arguments)))
+        {
+            summand = get_complexnum_real_value(car(arguments));
+            imag = get_complexnum_imag_value(car(arguments));
+        }
+        else
+        {
+            return make_error("Unsupported type for operation 'add'.");
+        }
+        result = result + summand + imag;
+        imag = 0;
         arguments = cdr(arguments);
     }
     return need_realnum ? make_realnum(result) : make_fixnum(result);
@@ -140,7 +163,7 @@ object *sub_proc(object *arguments)
     char need_realnum = 0;
     char first_value = 1;
     double result = 0;
-    if (is_the_empty_list(arguments))
+    if (_number_of_args(arguments) == 0)
     {
         return make_error("Arguments missing");
     }
@@ -182,7 +205,7 @@ object *mul_proc(object *arguments)
 {
     char need_realnum = 0;
     double result = 1;
-    if (is_the_empty_list(arguments))
+    if (_number_of_args(arguments) == 0)
     {
         return make_error("Arguments missing");
     }
@@ -208,9 +231,7 @@ object *quotient_proc(object *arguments)
 {
     char need_realnum = 0;
     double result, value1, value2;
-    if (is_the_empty_list(arguments) 
-            || is_the_empty_list(cdr(arguments))
-            || ! is_the_empty_list(cddr(arguments)))
+    if (_number_of_args(arguments) != 2)
     {
         return make_error("'quotient' needs exactly 2 arguments.");
     }
@@ -240,9 +261,7 @@ object *remainder_proc(object *arguments)
 {
     char need_realnum = 0;
     double result, value1, value2;
-    if (is_the_empty_list(arguments) 
-            || is_the_empty_list(cdr(arguments))
-            || ! is_the_empty_list(cddr(arguments)))
+    if (_number_of_args(arguments) != 2)
     {
         return make_error("'remainder' needs exactly 2 arguments.");
     }
@@ -271,9 +290,7 @@ object *remainder_proc(object *arguments)
 object *modulo_proc(object *arguments)
 {
     long result, value1, value2;
-    if (is_the_empty_list(arguments) 
-            || is_the_empty_list(cdr(arguments))
-            || ! is_the_empty_list(cddr(arguments)))
+    if (_number_of_args(arguments) != 2)
     {
         return make_error("'modulo' needs exactly 2 arguments.");
     }
@@ -301,6 +318,49 @@ object *floor_proc(object *arguments)
     }
 }
 
+object *make_rectangular_proc(object *arguments)
+{
+    double real, imag;
+
+    if (_number_of_args(arguments) != 2)
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if (! is_realnum_object(car(arguments)) 
+            || ! is_realnum_object(cadr(arguments)))
+    {
+        return make_error("Wrong argument type. Need REALNUM.");
+    }
+
+    real = get_realnum_value(car(arguments));
+    imag = get_realnum_value(cadr(arguments));
+    return make_complexnum(real, imag);
+}
+
+object *magnitude_proc(object *arguments)
+{
+    double real, imag;
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if (is_complexnum_object(car(arguments)))
+    {
+        real = get_complexnum_real_value(car(arguments));
+        imag = get_complexnum_imag_value(car(arguments));
+        return make_realnum(sqrt((real * real) + (imag * imag)));
+    }
+    else if (is_fixnum_object(car(arguments)))
+    {
+        long number = get_fixnum_value(car(arguments));
+        return make_fixnum(labs(number));
+    }
+    else
+    {
+        return make_error("Wrong argument type.");
+    }
+}
+
 object *mem_usage_proc(object *obj)
 {
     return make_fixnum(memory_usage());
@@ -315,12 +375,17 @@ object *is_number_proc(object *arguments)
 
     return is_true(is_real_proc(arguments))
         || is_true(is_integer_proc(arguments))
+        || is_true(is_complex_proc(arguments))
         ? true : false;
 }
 
 object *is_complex_proc(object *arguments)
 {
-    return make_error("'complex?' not implemented yet.");
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    return is_complexnum_object(car(arguments)) ? true : false;
 }
 
 object *is_real_proc(object *arguments)
@@ -629,13 +694,6 @@ object *load_proc(object *arguments)
     return result;
 }
 
-object *write_char_proc(object *arguments)
-{
-    char c = get_character_value(car(arguments));
-    fprintf(stdout, "%c", c);
-    return true;
-}
-
 object *open_input_file_proc(object *arguments)
 {
     FILE * input_file;
@@ -676,6 +734,210 @@ object *is_output_port_proc(object *arguments)
     return is_output_port_object(car(arguments)) ? true : false;
 }
 
+object *is_string_proc(object *arguments)
+{
+    if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    return is_string_object(car(arguments)) ? true : false;
+}
+
+object *make_string_proc(object *arguments)
+{
+    long length = 0;
+    char initializer = ' ';
+    char *str;
+    object *obj;
+
+    if (is_the_empty_list(arguments))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_the_empty_list(cdr(arguments)))
+    {
+        if ( ! is_character_object(cadr(arguments)))
+        {
+            return make_error("Wrong type for string initializer.");
+        }
+        initializer = get_character_value(cadr(arguments));
+    }
+    if ( ! is_fixnum_object(car(arguments)))
+    {
+        return make_error("Wrong argument type.");
+    }
+    length = get_fixnum_value(car(arguments));
+
+    str = malloc(length + 1);
+    if ( ! str)
+    {
+        fprintf(stderr, "Out of memory.\n");
+        exit(1);
+    }
+    memset(str, initializer, length);
+    str[length + 1] = '\0';
+    obj = make_string(str);
+    free(str);
+    return obj;
+}
+
+object *string_length_proc(object *arguments)
+{
+    if (is_the_empty_list(arguments))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_string_object(car(arguments)))
+    {
+        return make_error("Wrong argument type.");
+    }
+
+    return make_fixnum(strlen(get_string_value(car(arguments))));
+}
+
+object *string_ref_proc(object *arguments)
+{
+    long length, index;
+    const char * str;
+
+    if (is_the_empty_list(arguments) || is_the_empty_list(cdr(arguments))
+        || ! is_the_empty_list(cddr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_string_object(car(arguments)))
+    {
+        return make_error("Wrong type for argument 1. Should be STRING.");
+    }
+    if ( ! is_fixnum_object(cadr(arguments)))
+    {
+        return make_error("Wrong type for argument 2. Should be INTEGER.");
+    }
+
+    str = get_string_value(car(arguments));
+    length = strlen(str);
+    index = get_fixnum_value(cadr(arguments));
+
+    if (index >= length)
+    {
+        return make_error("Illegal index to string.");
+    }
+
+    return make_character(str[index]);
+}
+
+object *string_set_proc(object *arguments)
+{
+    long length, index;
+    char * str;
+    char c;
+
+    if (is_the_empty_list(arguments) 
+            || is_the_empty_list(cdr(arguments))
+            || is_the_empty_list(cddr(arguments))
+            || ! is_the_empty_list(cdddr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_string_object(car(arguments)))
+    {
+        return make_error("Wrong type for argument 1. Should be STRING.");
+    }
+    if ( ! is_fixnum_object(cadr(arguments)))
+    {
+        return make_error("Wrong type for argument 2. Should be INTEGER.");
+    }
+    if ( ! is_character_object(caddr(arguments)))
+    {
+        return make_error("Wrong type for argument 2. Should be CHARACTER.");
+    }
+
+    str = get_string_value(car(arguments));
+    length = strlen(str);
+    index = get_fixnum_value(cadr(arguments));
+    c = get_character_value(caddr(arguments));
+
+    if (index >= length)
+    {
+        return make_error("Illegal index to string.");
+    }
+
+    str[index] = c;
+    return ok_symbol;
+}
+
+object *is_char_proc(object *arguments)
+{
+    if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    return is_character_object(car(arguments)) ? true : false;
+}
+
+object *number_to_string_proc(object *arguments)
+{
+    char buffer[1024];
+
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("Wrong number of arguments");
+    }
+
+    if (is_fixnum_object(car(arguments)))
+    {
+        long value = get_fixnum_value(car(arguments));
+        sprintf(buffer, "%ld", value);
+    }
+    else if (is_realnum_object(car(arguments)))
+    {
+        double value = get_realnum_value(car(arguments));
+        sprintf(buffer, "%f", value);
+    }
+    else if (is_complexnum_object(car(arguments)))
+    {
+        double real, imag;
+        real = get_complexnum_real_value(car(arguments));
+        imag = get_complexnum_imag_value(car(arguments));
+        sprintf(buffer, "%f%+fi", real, imag);
+    }
+    else
+    {
+        return make_error("Wrong argument type.");
+    }
+    return make_string(buffer);
+}
+
+object *char_to_int_proc(object *arguments)
+{
+    char c;
+    if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_character_object(car(arguments)))
+    {
+        return make_error("Wrong argument type.");
+    }
+    c = get_character_value(car(arguments));
+    return make_fixnum(c);
+}
+
+object *int_to_char_proc(object *arguments)
+{
+    int c;
+    if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
+    {
+        return make_error("Wrong number of arguments.");
+    }
+    if ( ! is_fixnum_object(car(arguments)))
+    {
+        return make_error("Wrong argument type.");
+    }
+    c = get_fixnum_value(car(arguments));
+    return make_character(c);
+}
+
 object *error_proc(object *arguments)
 {
     fprintf(stderr, "Error: %s\n", get_string_value(car(arguments)));
@@ -692,5 +954,85 @@ object *exit_proc(object *arguments)
     exit(get_fixnum_value(car(arguments)));
 }
 
+void _pretty_print(object *arguments, char *old_indent, char is_last)
+{
+    char indent[4096];
+    memset(indent, 0x00, 4096);
+    strcpy(indent, old_indent);
 
+    fprintf(stdout, "%s", indent);
+
+    if (is_last)
+    {
+        fprintf(stdout, "\\-");
+        memcpy(indent + strlen(indent), "| ", 2);
+    }
+    else
+    {
+        fprintf(stdout, "|-");
+        memcpy(indent + strlen(indent), "| ", 2);
+    }
+
+    switch (arguments->type)
+    {
+        case FIXNUM:
+            fprintf(stdout, "FIXNUM: %ld\n", get_fixnum_value(arguments));
+            break;
+        case REALNUM:
+            fprintf(stdout, "REALNUM: %f\n", get_realnum_value(arguments));
+            break;
+        case COMPLEXNUM:
+            fprintf(stdout, "COMPLEXNUM: %f%+fi\n",
+                    get_complexnum_real_value(arguments),
+                    get_complexnum_imag_value(arguments));
+            break;
+        case BOOLEAN:
+            fprintf(stdout, "BOOLEAN: #\\%c\n", 
+                    (arguments == true) ? 't' : 'f');
+            break;
+        case CHARACTER:
+            fprintf(stdout, "CHARACTER: %c\n", get_character_value(arguments));
+            break;
+        case STRING:
+            fprintf(stdout, "STRING: \"%s\"\n", get_string_value(arguments));
+            break;
+        case PRIMITIVE_PROC:
+            fprintf(stdout, "PRIMITIVE_PROC\n");
+            break;
+        case COMPOUND_PROC:
+            fprintf(stdout, "COMPOUND_PROC\n");
+            _pretty_print(arguments->data.compound_proc.parameters, indent, 0);
+            _pretty_print(arguments->data.compound_proc.body, indent, 1);
+            break;
+        case PAIR:
+            fprintf(stdout, "PAIR\n");
+            _pretty_print(car(arguments), indent, 1);
+            _pretty_print(cdr(arguments), old_indent, 0);
+            break;
+        case SYMBOL:
+            fprintf(stdout, "SYMBOL: %s\n", get_symbol_value(arguments));
+            break;
+        case THE_EMPTY_LIST:
+            fprintf(stdout, "'()\n");
+            break;
+        case ERROR:
+            fprintf(stdout, "ERROR: %s\n", get_error_message(arguments));
+            break;
+        case INPUT_PORT:
+            fprintf(stdout, "INPUT_PORT\n");
+            break;
+        case OUTPUT_PORT:
+            fprintf(stdout, "OUTPUT_PORT\n");
+            break;
+        case END_OF_FILE:
+            fprintf(stdout, "EOF\n");
+            break;
+    }
+}
+
+object *pretty_print_structure_proc(object *arguments)
+{
+    _pretty_print(arguments, "", 0);
+    return ok_symbol;
+}
 

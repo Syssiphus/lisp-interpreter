@@ -39,15 +39,19 @@ void populate_environment(object *env)
     add_procedure("set-cdr!", set_cdr_proc);
 
     add_procedure("pair?"   , is_pair_proc);
-    add_procedure("boolean?" , is_boolean_proc);
+    add_procedure("boolean?", is_boolean_proc);
 
     add_procedure("+"       , add_proc);
     add_procedure("-"       , sub_proc);
     add_procedure("*"       , mul_proc);
+    add_procedure("/"       , quotient_proc); /* TODO: implement own function */
 
     add_procedure("quotient" , quotient_proc);
     add_procedure("remainder", remainder_proc);
     add_procedure("modulo"   , modulo_proc);
+
+    add_procedure("make-rectangular", make_rectangular_proc);
+    add_procedure("magnitude"       , magnitude_proc);
 
     add_procedure("floor"    , floor_proc);
 
@@ -61,8 +65,6 @@ void populate_environment(object *env)
 
     add_procedure("eqv?"    , is_eqv_proc);
     add_procedure("symbol=?", is_symbol_equal_proc);
-    add_procedure("string=?", is_string_equal_proc);
-    add_procedure("char=?"  , is_character_equal_proc);
     add_procedure("="       , is_number_equal_proc);
     add_procedure("<"       , is_number_lt_proc);
     add_procedure(">"       , is_number_gt_proc);
@@ -70,16 +72,30 @@ void populate_environment(object *env)
     add_procedure(">="      , is_number_gteq_proc);
 
     add_procedure("load"      , load_proc);
-    add_procedure("write-char", write_char_proc);
 
     add_procedure("open-input-file" , open_input_file_proc);
     add_procedure("open-output-file", open_output_file_proc);
     add_procedure("input-port?"     , is_input_port_proc);
     add_procedure("output-port?"    , is_output_port_proc);
 
+    add_procedure("string?"         , is_string_proc);
+    add_procedure("string=?"        , is_string_equal_proc);
+    add_procedure("make-string"     , make_string_proc);
+    add_procedure("string-length"   , string_length_proc);
+    add_procedure("string-ref"      , string_ref_proc);
+    add_procedure("string-set!"     , string_set_proc);
+
+    add_procedure("char?"           , is_char_proc);
+    add_procedure("char=?"          , is_character_equal_proc);
+    add_procedure("char->integer"   , char_to_int_proc);
+    add_procedure("integer->char"   , int_to_char_proc);
+    add_procedure("number->string"  , number_to_string_proc);
+
     add_procedure("error"   , error_proc);
     add_procedure("quit"    , quit_proc);
     add_procedure("exit"    , exit_proc);
+
+    add_procedure("print-structure" , pretty_print_structure_proc);
 }
 
 object *extend_environment(object *vars, object *vals, object *base_env)

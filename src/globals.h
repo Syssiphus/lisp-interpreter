@@ -32,6 +32,7 @@ object *symbol_table;
 object *define_symbol;
 object *set_symbol;
 object *quote_symbol;
+object *do_symbol;
 object *ok_symbol;
 
 object *lambda_symbol;
@@ -45,6 +46,7 @@ object *else_symbol;
 object *and_symbol;
 object *or_symbol;
 
+object *with_output_to_file_symbol;
 object *current_input_port_symbol;
 object *current_output_port_symbol;
 object *write_char_symbol;

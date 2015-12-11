@@ -7,6 +7,7 @@ typedef enum
 {
   FIXNUM         /* Integer number (64 bit) */
 , REALNUM        /* Real number (double) */
+, COMPLEXNUM     /* Complex number (a+bi)*/
 , BOOLEAN        /* Truth type (boolean) */
 , CHARACTER      /* Character type */
 , STRING         /* String type */
@@ -42,6 +43,12 @@ typedef struct object
         {
             double value;
         } realnum;
+
+        struct
+        {
+            double real;
+            double imag;
+        } complexnum;
 
         struct
         {
@@ -111,6 +118,11 @@ object *make_realnum(double num);
 char is_realnum_object(object *obj);
 double get_realnum_value(object *obj);
 
+object *make_complexnum(double real, double imag);
+char is_complexnum_object(object *obj);
+double get_complexnum_real_value(object *obj);
+double get_complexnum_imag_value(object *obj);
+
 object *make_character(int c);
 char is_character_object(object *obj);
 int get_character_value(object *obj);
@@ -156,8 +168,10 @@ void close_output_port(object *obj);
 
 object *make_lambda(object *arguments, object *body);
 object *make_begin(object *obj);
+object *make_assignment(object *var, object *value);
 
 object *make_compound_proc(object *parameters, object *body, object *env);
 char is_compound_proc_object(object *obj);
+
 
 

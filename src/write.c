@@ -17,6 +17,12 @@ void write(FILE *out, object *obj)
     {
         fprintf(out, "%f", get_realnum_value(obj));
     }
+    else if (is_complexnum_object(obj))
+    {
+        fprintf(out, "%f%+fi", 
+                get_complexnum_real_value(obj), 
+                get_complexnum_imag_value(obj));
+    }
     else if (is_character_object(obj))
     {
         int c = get_character_value(obj);

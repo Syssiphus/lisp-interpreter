@@ -123,6 +123,14 @@ char is_complexnum_object(object *obj);
 double get_complexnum_real_value(object *obj);
 double get_complexnum_imag_value(object *obj);
 
+object *add_fixnum_value(object *obj, object *summand);
+object *add_realnum_value(object *obj, object *summand);
+object *add_complexnum_value(object *obj, object *summand);
+
+object *mul_fixnum_value(object *obj, object *factor);
+object *mul_realnum_value(object *obj, object *factor);
+object *mul_complexnum_value(object *obj, object *factor);
+
 object *make_character(int c);
 char is_character_object(object *obj);
 int get_character_value(object *obj);

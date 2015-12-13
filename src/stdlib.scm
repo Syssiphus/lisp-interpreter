@@ -31,138 +31,138 @@
 
 (define (null? exp)
   (if (eqv? exp '())
-    #t #f))
+      #t #f))
 
 (define (length items)
   (define (iter a count)
     (if (null? a)
-      count
-      (iter (cdr a) (+ 1 count))))
+        count
+        (iter (cdr a) (+ 1 count))))
   (iter items 0))
 
 (define (append list1 list2)
   (if (null? list1)
-    list2
-    (cons (car list1) (append (cdr list1) list2))))
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
 
 (define (reverse l)
   (define (iter in out)
     (if (pair? in)
-      (iter (cdr in) (cons (car in) out))
-      out))
+        (iter (cdr in) (cons (car in) out))
+        out))
   (iter l '()))
 
 (define (map proc items)
   (if (null? items)
-    '()
-    (cons (proc (car items))
-          (map proc (cdr items)))))
+      '()
+      (cons (proc (car items))
+            (map proc (cdr items)))))
 
 (define (for-each f l)
   (if (null? l)
-    #t
-    (begin
-      (f (car l))
-      (for-each f (cdr l)))))
+      #t
+      (begin
+        (f (car l))
+        (for-each f (cdr l)))))
 
 (define (not x)
   (if (and (boolean? x) 
            (eqv? x #f))
-    #t
-    #f))
+      #t
+      #f))
 
 (define (zero? x)
   (if (and (number? x) 
            (= x 0))
-    #t
-    #f))
+      #t
+      #f))
 
 (define (positive? x)
   (if (and (number? x) 
            (> x 0))
-    #t
-    #f))
+      #t
+      #f))
 
 (define (negative? x)
   (if (and (number? x) 
            (< x 0))
-    #t
-    #f))
+      #t
+      #f))
 
 (define (odd? x)
-  (if (and (integer? (car x))
-           (= (remainder (car x) 2) 1))
-    #t
-    #f))
+  (if (and (integer? x)
+           (= (remainder x 2) 1))
+      #t
+      #f))
 
 (define (even? x)
   (if (and (integer? x)
            (= (remainder x 2) 0))
-    #t
-    #f))
+      #t
+      #f))
 
 (define (max x y)
   (if (> x y)
-    x
-    y))
+      x
+      y))
 
 (define (min x y)
   (if (< x y)
-    x
-    y))
+      x
+      y))
 
 (define (abs x)
   (if (negative? x)
-    (- x)
-    x))
+      (- x)
+      x))
 
 (define (list . args) args)
 
 (define (list-tail l k)
   (if (zero? k)
-    l
-    (list-tail (cdr l) (- k 1))))
+      l
+      (list-tail (cdr l) (- k 1))))
 
 (define (list-ref l k)
   (if (zero? k)
-    (car l)
-    (list-ref (cdr l) (- k 1))))
+      (car l)
+      (list-ref (cdr l) (- k 1))))
 
 ;; Display of information
 (define (newline)
-  (write-char #\newline))
+  (display #\newline))
 
 (define (display str)
+  (let ((output-port current-output-port))
 
-  (define (str-iter str pos len)
-    (if (zero? (- pos len))
-      #t
-      (begin
-        (write-char (string-ref str pos))
-        (str-iter str (+ pos 1) len))))
+    (define (str-iter str pos len)
+      (if (zero? (- pos len))
+          #t
+          (begin
+            (write-char (string-ref str pos) output-port)
+            (str-iter str (+ pos 1) len))))
 
-  (cond ((char? str) (write-char str))
-        ((string? str) (str-iter str 0 (string-length str)))
-        ((number? str) (display (number->string str)))
-        (else #f)))
+    (cond ((char? str) (write-char str) output-port)
+          ((string? str) (str-iter str 0 (string-length str)))
+          ((number? str) (let ((output-str (number->string str)))
+                           (str-iter output-str 0 (string-length output-str))))
+          (else #f))
+    #t))
 
 ;; Some additional functions
 (define (assert x y)
   (if (eqv? x y)
-    #t
-    (error "assert failed" x "!=" y)))
+      #t
+      (error "assert failed" x "!=" y)))
 
 (define (assert-true x)
   (if x
-    #t
-    (error "assert failed.")))
+      #t
+      (error "assert failed.")))
 
 (define (assert-false x)
   (if x
-    (error "assert failed.")
-    #t))
-
-(define (display-test)
-  (display a-string))
+      (error "assert failed.")
+      #t))
 
 

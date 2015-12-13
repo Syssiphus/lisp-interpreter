@@ -122,9 +122,7 @@ object *length_proc(object *arguments)
 
 object *add_proc(object *arguments)
 {
-    char need_realnum = 0;
-    double result = 0;
-    double imag = 0;
+    object *result = make_fixnum(0);
 
     if (_number_of_args(arguments) == 0)
     {
@@ -132,30 +130,24 @@ object *add_proc(object *arguments)
     }
     while ( ! is_the_empty_list(arguments))
     {
-        double summand;
-        if (is_realnum_object(car(arguments)))
+        object *summand = car(arguments);
+        switch (summand->type)
         {
-            summand = get_realnum_value(car(arguments));
-            need_realnum = 1;
+            case FIXNUM:
+                result = add_fixnum_value(result, summand);
+                break;
+            case REALNUM:
+                result = add_realnum_value(result, summand);
+                break;
+            case COMPLEXNUM:
+                result = add_complexnum_value(result, summand);
+                break;
+            default:
+                return make_error("Trying to add illegal type.");
         }
-        else if (is_fixnum_object(car(arguments)))
-        {
-            summand = get_fixnum_value(car(arguments));
-        }
-        else if (is_complexnum_object(car(arguments)))
-        {
-            summand = get_complexnum_real_value(car(arguments));
-            imag = get_complexnum_imag_value(car(arguments));
-        }
-        else
-        {
-            return make_error("Unsupported type for operation 'add'.");
-        }
-        result = result + summand + imag;
-        imag = 0;
         arguments = cdr(arguments);
     }
-    return need_realnum ? make_realnum(result) : make_fixnum(result);
+    return result;
 }
 
 object *sub_proc(object *arguments)
@@ -203,28 +195,33 @@ object *sub_proc(object *arguments)
 
 object *mul_proc(object *arguments)
 {
-    char need_realnum = 0;
-    double result = 1;
+    object *result = make_fixnum(1);
+
     if (_number_of_args(arguments) == 0)
     {
         return make_error("Arguments missing");
     }
     while ( ! is_the_empty_list(arguments))
     {
-        double factor;
-        if (is_realnum_object(car(arguments)))
+        object *factor = car(arguments);
+        switch (factor->type)
         {
-            factor = get_realnum_value(car(arguments));
-            need_realnum = 1;
+            case FIXNUM:
+                result = mul_fixnum_value(result, factor);
+                break;
+            case REALNUM:
+                result = mul_realnum_value(result, factor);
+                break;
+            case COMPLEXNUM:
+                result = mul_complexnum_value(result, factor);
+                break;
+            default:
+                return make_error("Unknow type in multiplication.");
         }
-        else
-        {
-            factor = get_fixnum_value(car(arguments));
-        }
-        result = result * factor;
         arguments = cdr(arguments);
     }
-    return need_realnum ? make_realnum(result) : make_fixnum(result);
+
+    return result;
 }
 
 object *quotient_proc(object *arguments)

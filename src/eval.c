@@ -167,15 +167,18 @@ tailcall:
         FILE *outputfile;
         object *vars, *vals, *compound;
         object *old_port, *new_port, *result;
+        object *filename;
 
         arguments = cdr(expr);
 
-        if ( ! is_string_object(eval(car(arguments), env)))
+        filename = eval(car(arguments), env);
+
+        if ( ! is_string_object(filename))
         {
             return make_error("Wrong argument type for argument 1.");
         }
 
-        outputfile = fopen(get_string_value(car(arguments)), "w");
+        outputfile = fopen(get_string_value(filename), "w");
         if ( ! outputfile)
         {
             return make_error("Unable to open file '%s' (%s)",

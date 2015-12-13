@@ -4,6 +4,8 @@
 *.swp
 *.swo
 
+*.pgm
+
 tags
 TAGS
 
@@ -15,6 +17,8 @@ legacy_scheme.exe
 *.stackdump
 
 ._*
+
+src/.#*
 
 tests/error.txt
 tests/result.txt

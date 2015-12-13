@@ -58,6 +58,170 @@ double get_realnum_value(object *obj)
     return obj->data.realnum.value;
 }
 
+/** ARITHMETICS */
+object *add_fixnum_value(object *obj, object *summand)
+{
+    object *result;
+    long x = get_fixnum_value(summand);
+
+    switch(obj->type)
+    {
+        case FIXNUM:
+            result = make_fixnum(get_fixnum_value(obj) + x);
+            break;
+        case REALNUM:
+            result = make_realnum(get_realnum_value(obj) + x);
+            break;
+        case COMPLEXNUM:
+            result = make_complexnum(get_complexnum_real_value(obj) + x,
+                                     get_complexnum_imag_value(obj) + x);
+            break;
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
+object *add_realnum_value(object *obj, object *summand)
+{
+    object *result;
+    double x = get_realnum_value(summand);
+
+    switch(obj->type)
+    {
+        case FIXNUM:
+            result = make_realnum(get_fixnum_value(obj) + x);
+            break;
+        case REALNUM:
+            result = make_realnum(get_realnum_value(obj) + x);
+            break;
+        case COMPLEXNUM:
+            result = make_complexnum(get_complexnum_real_value(obj) + x,
+                                     get_complexnum_imag_value(obj) + x);
+            break;
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
+object *add_complexnum_value(object *obj, object *summand)
+{
+    object *result;
+    double x = get_complexnum_real_value(summand);
+    double y = get_complexnum_imag_value(summand);
+
+    switch(obj->type)
+    {
+        case FIXNUM:
+            result = make_complexnum(get_fixnum_value(obj) + x,
+                                     get_fixnum_value(obj) + y);
+            break;
+        case REALNUM:
+            result = make_complexnum(get_realnum_value(obj) + x,
+                                     get_realnum_value(obj) + y);
+            break;
+        case COMPLEXNUM:
+            result = make_complexnum(get_complexnum_real_value(obj) + x,
+                                     get_complexnum_imag_value(obj) + y);
+            break;
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
+object *mul_fixnum_value(object *obj, object *factor)
+{
+    object *result;
+    long x = get_fixnum_value(factor);
+
+    switch(obj->type)
+    {
+        case FIXNUM:
+            result = make_fixnum(get_fixnum_value(obj) * x);
+            break;
+        case REALNUM:
+            result = make_realnum(get_realnum_value(obj) * x);
+            break;
+        case COMPLEXNUM:
+        {
+            double a, b;
+            a = get_complexnum_real_value(obj);
+            b = get_complexnum_imag_value(obj);
+            result = make_complexnum(a * x, b * x); 
+            break;
+        }
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
+object *mul_realnum_value(object *obj, object *factor)
+{
+    object *result;
+    double x = get_realnum_value(factor);
+
+    switch(obj->type)
+    {
+        case FIXNUM:
+            result = make_realnum(get_fixnum_value(obj) * x);
+            break;
+        case REALNUM:
+            result = make_realnum(get_realnum_value(obj) * x);
+            break;
+        case COMPLEXNUM:
+        {
+            double a, b;
+            a = get_complexnum_real_value(obj);
+            b = get_complexnum_imag_value(obj);
+            result = make_complexnum(a * x, b * x); 
+            break;
+        }
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
+object *mul_complexnum_value(object *obj, object *factor)
+{
+    object *result;
+    double c, d;
+    c = get_complexnum_real_value(factor);
+    d = get_complexnum_imag_value(factor);
+    
+    switch (obj->type)
+    {
+        case FIXNUM:
+            result = make_complexnum(get_fixnum_value(obj) * c,
+                                     get_fixnum_value(obj) * d);
+            break;
+        case REALNUM:
+            result = make_complexnum(get_realnum_value(obj) * c,
+                                     get_realnum_value(obj) * d);
+            break;
+        case COMPLEXNUM:
+        {
+            double a, b;
+            a = get_complexnum_real_value(obj);
+            b = get_complexnum_imag_value(obj);
+            result = make_complexnum(((a * c) - (b * d)), ((a * d) + (b * c)));
+            break;
+        }
+        default:
+            return make_error("Wrong argument type.");
+    }
+
+    return result;
+}
+
 /** COMPLEX NUMBERS */
 object *make_complexnum(double real, double imag)
 {

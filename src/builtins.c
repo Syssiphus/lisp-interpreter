@@ -430,6 +430,7 @@ object *is_eqv_proc(object *arguments)
             return is_character_equal_proc(arguments);
         case FIXNUM:
         case REALNUM:
+        case COMPLEXNUM:
             return is_number_equal_proc(arguments);
         default:
             return (obj1 == obj2) ? true : false;

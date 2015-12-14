@@ -1,9 +1,14 @@
+#include <string.h>
+#include <errno.h>
 
 #include "read.h"
 #include "write.h"
 #include "eval.h"
 #include "init.h"
 #include "globals.h"
+
+/* From environment.c */
+object *load_file(char *filename);
 
 int main(int argc, char** argv)
 {
@@ -12,6 +17,11 @@ int main(int argc, char** argv)
             "Use Ctrl-C to exit.\n");
 
     init();
+    
+    /* Read in the standard lib functions */
+    fprintf(stdout, "Loading 'stdlib.scm'... ");
+    write(stdout, load_file("stdlib.scm"));
+    putc('\n', stdout);
 
     while (1)
     {

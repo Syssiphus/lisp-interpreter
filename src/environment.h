@@ -14,5 +14,6 @@ object *find_variable(object *symbol, object *env);
 object *definition_variable(object *exp);
 object *definition_value(object *exp);
 
+object *load_file(char *filename);
 
 

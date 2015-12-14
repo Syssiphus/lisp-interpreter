@@ -11,6 +11,8 @@
 #include "read.h"
 #include "eval.h"
 
+void write(FILE *out, object *obj);
+
 long _number_of_args(object *arguments)
 {
     long nr_args = 0;
@@ -426,6 +428,35 @@ object *is_eqv_proc(object *arguments)
             return is_symbol_equal_proc(arguments);
         case STRING:
             return is_string_equal_proc(arguments);
+        case CHARACTER:
+            return is_character_equal_proc(arguments);
+        case FIXNUM:
+        case REALNUM:
+        case COMPLEXNUM:
+            return is_number_equal_proc(arguments);
+        default:
+            return (obj1 == obj2) ? true : false;
+    }
+}
+
+object *is_eq_proc(object *arguments)
+{
+    object *obj1 = car(arguments);
+    object *obj2 = cadr(arguments);
+
+    if (obj1->type != obj2->type)
+    {
+        return false;
+    }
+
+    switch (obj1->type)
+    {
+        case SYMBOL:
+            return get_symbol_value(obj1) == get_symbol_value(obj2) 
+                ? true : false;
+        case STRING:
+            return get_string_value(obj1) == get_string_value(obj2)
+                ? true : false;
         case CHARACTER:
             return is_character_equal_proc(arguments);
         case FIXNUM:
@@ -938,7 +969,14 @@ object *int_to_char_proc(object *arguments)
 
 object *error_proc(object *arguments)
 {
-    fprintf(stderr, "Error: %s\n", get_string_value(car(arguments)));
+    while ( ! is_the_empty_list(arguments))
+    {
+        write(stderr, car(arguments));
+        fprintf(stderr, " ");
+        arguments = cdr(arguments);
+    }
+
+    fprintf(stderr, "\n");
     exit(1);
 }
 

@@ -7,17 +7,15 @@ not_test = "(assert (not #f) #t)"
 
 testlist = {
         # number predicates
-        "number? 1" : "(assert-true (number? 233))"
-      , "number? 2" : "(assert-true (number? -23))"
-      , "number? 3" : "(assert-true (number? 23.0))"
-      , "number? 4" : "(assert-true (number? -23.0))"
-      , "number? 5" : "(assert-false (number? 'abc))"
-      , "number? 6" : "(assert-false (number? #t))"
-      , "complex? 1" : "(assert-true (complex? 3+4i)"
-      , "complex? 2" : "(assert-true (complex? 3)"
-      , "real 1" : "(assert-true (real? 3))"
-      , "real 2" : "(assert-true (real? -2.5+0.0i))"
-      , "real 3" : "(assert-true (real? #e1e10))"
+        "eqv? 1" : "(assert-true (eqv? 'a 'a))"
+      , "eqv? 2" : "(assert-false (eqv? 'a 'b))"
+      , "eqv? 3" : "(assert-true (eqv? 2 2))"
+      , "eqv? 4" : "(assert-true (eqv? '() '()))"
+      , "eqv? 5" : "(assert-true (eqv? 100000000 100000000))"
+      , "eqv? 6" : "(assert-false (eqv? (cons 1 2) (cons 1 2)))"
+      , "eqv? 7" : "(assert-false (eqv? (lambda () 1) (lambda () 2)))"
+      , "eqv? 8" : "(assert-false (eqv? #f 'nil))"
+      , "eqv? 9" : "(assert-true (let ((p (lambda (x) x))) (eqv? p p)))"
       }
 
 interpreter = "%s/../scheme" % os.path.dirname(sys.argv[0])
@@ -34,7 +32,7 @@ def escape_test_string(s):
     return retval
 
 def wrap_test(test):
-    retval = "(begin (load \"src/stdlib.scm\") %s (quit))" % test
+    retval = "(begin %s (quit))" % test
     return retval
 
 def interpreter_cmd():

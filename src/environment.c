@@ -64,6 +64,7 @@ void populate_environment(object *env)
     add_procedure("integer?" , is_integer_proc);
 
     add_procedure("eqv?"    , is_eqv_proc);
+    add_procedure("eq?"     , is_eq_proc);
     add_procedure("symbol=?", is_symbol_equal_proc);
     add_procedure("="       , is_number_equal_proc);
     add_procedure("<"       , is_number_lt_proc);
@@ -225,4 +226,7 @@ object *definition_value(object *exp)
     }
 }
 
-
+object *load_file(char *filename)
+{
+    return load_proc(cons(make_string(filename), the_empty_list));
+}

@@ -468,6 +468,17 @@ object *is_eq_proc(object *arguments)
     }
 }
 
+object *is_symbol_proc(object *arguments)
+{
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'symbol?' takes exactly 1 argument, %d given.",
+                          _number_of_args(arguments));
+    }
+    
+    return is_symbol_object(car(arguments)) ? true : false;
+}
+
 object *is_symbol_equal_proc(object *arguments)
 {
     object *obj1 = car(arguments);

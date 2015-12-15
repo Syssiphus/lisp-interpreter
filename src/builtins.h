@@ -58,6 +58,7 @@ object *magnitude_proc(object *arguments);
 
 object *is_eqv_proc(object *arguments);
 object *is_eq_proc(object *arguments);
+object *is_symbol_proc(object *arguments);
 object *is_symbol_equal_proc(object *arguments);
 object *is_number_equal_proc(object *arguments);
 object *is_number_lt_proc(object *arguments);

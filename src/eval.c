@@ -37,7 +37,7 @@ object *eval_assignment(object *obj, object *env);
 object *eval_cond(object *obj, object *env);
 
 object *do_variables(object *expr);
-object *do_initializers(object *expr);
+object *do_initializers(object *expr, object *env);
 object *do_steps(object *expr);
 object *do_termination(object *expr);
 object *do_body(object *expr);
@@ -248,22 +248,27 @@ tailcall:
         /* Initialize the 'local' variables */
         env = extend_environment(
                 do_variables(expr),
-                do_initializers(expr),
+                do_initializers(expr, env),
                 env);
 
         /* Extract infos */
-        steps = do_steps(expr);
-        termination = do_termination(expr);
-        body = do_body(expr);
+        steps       = do_steps(expr);
+        if ( ! is_the_empty_list(steps))
+        {
+            steps   = make_begin(steps);
+        }
+        termination = make_begin(do_termination(expr));
+        body        = make_begin(do_body(expr)); 
 
-        while(is_false(eval(make_begin(termination), env)))
+        while(is_false(eval(termination, env)))
         {
             /* Do loop */
             /* - Execute the body of the loop */
-            result = eval(make_begin(body), env);
+            result = eval(body, env);
 
             /* - Execute the steppers */
-            eval(make_begin(steps), env);
+            if ( ! is_the_empty_list(steps))
+                eval(steps, env);
         }
         return result;
     }
@@ -559,14 +564,14 @@ object *do_variables(object *expr)
     return vars;
 }
 
-object *do_initializers(object *expr)
+object *do_initializers(object *expr, object *env)
 {
     object *obj = cadr(expr);
     object *inits = the_empty_list;
 
     while ( ! is_the_empty_list(obj))
     {
-        inits = cons(cadar(obj), inits);
+        inits = cons(eval(cadar(obj), env), inits);
         obj = cdr(obj);
     }
     return inits;

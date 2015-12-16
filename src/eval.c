@@ -42,6 +42,16 @@ object *do_steps(object *expr);
 object *do_termination(object *expr);
 object *do_body(object *expr);
 
+object *operator(object *expr);
+object *operands(object *expr);
+
+object *eval_expression(object *expr);
+object *eval_environment(object *expr);
+
+object *apply_operator(object *expr);
+object *apply_operands(object *expr);
+
+
 object *eval(object *expr, object *env)
 {
     object *procedure = the_empty_list;
@@ -259,13 +269,29 @@ tailcall:
     }
     else if (is_pair_object(expr))
     {
-        procedure = eval(car(expr), env);
+        procedure = eval(operator(expr), env);
         if (is_error_object(procedure))
         {
             return procedure; /* return the error */
         }
 
-        arguments = list_of_values(cdr(expr), env);
+        arguments = list_of_values(operands(expr), env);
+
+        /* Special handling for: eval */
+        if (is_primitive_proc_object(procedure)
+            && procedure->data.primitive_proc.fn == eval_fake_proc)
+        {
+            expr = eval_expression(arguments);
+            env  = eval_environment(arguments);
+            goto tailcall;
+        }
+        /* Special handling for: eval */
+        else if (is_primitive_proc_object(procedure)
+                 && procedure->data.primitive_proc.fn == apply_fake_proc)
+        {
+            procedure = apply_operator(arguments);
+            arguments = apply_operands(arguments);
+        }
 
         if (is_primitive_proc_object(procedure))
         {
@@ -491,6 +517,7 @@ object *make_cond(object *cond)
 
 object *eval_cond(object *obj, object *env)
 {
+    UNUSED(env);
     return make_cond(cdr(obj));
 }
 
@@ -570,4 +597,47 @@ object *do_body(object *expr)
     return cdddr(expr);
 }
 
+object *operator(object *expr)
+{
+    return car(expr);
+}
+
+object *operands(object *expr)
+{
+    return cdr(expr);
+}
+
+object *eval_expression(object *expr)
+{
+    return car(expr);
+}
+
+object *eval_environment(object *expr)
+{
+    return cadr(expr);
+}
+
+
+object *apply_operator(object *expr)
+{
+    return car(expr);
+}
+
+object *prepare_apply_operands(object *expr)
+{
+    if (is_the_empty_list(cdr(expr)))
+    {
+        return car(expr);
+    }
+    else
+    {
+        return cons(car(expr),
+                    prepare_apply_operands(cdr(expr)));
+    }
+}
+
+object *apply_operands(object *expr)
+{
+    return prepare_apply_operands(cdr(expr));
+}
 

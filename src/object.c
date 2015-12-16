@@ -31,7 +31,7 @@ long get_fixnum_value(object *obj)
     if (obj->type != FIXNUM)
     {
         fprintf(stderr, "Object is not a FIXNUM object.\n");
-        __builtin_trap();
+        DEBUG_BREAK;
     }
 
     return obj->data.fixnum.value;
@@ -270,7 +270,7 @@ int get_character_value(object *obj)
     if (obj->type != CHARACTER)
     {
         fprintf(stderr, "Object is not a CHARACTER object.\n");
-        __builtin_trap();
+        DEBUG_BREAK;
     }
 
     return obj->data.character.value;
@@ -287,7 +287,7 @@ object *make_string(char *str)
     if ( ! obj->data.string.value)
     {
         fprintf(stderr, "Error allocating string space for string '%s'.", str);
-        __builtin_trap();
+        DEBUG_BREAK;
     }
     strcpy(obj->data.string.value, str);
     obj->type = STRING;
@@ -315,7 +315,7 @@ char is_false(object *obj)
     if ( ! is_boolean_object(obj))
     {
         fprintf(stderr, "Not a boolean value.\n");
-        __builtin_trap();
+        DEBUG_BREAK;
     }
 
     return obj->data.boolean.value == 0;
@@ -349,7 +349,7 @@ object *make_symbol(char *str)
     {
         fprintf(stderr, "Error allocating string space for symbol string "
                 "'%s'.", str);
-        __builtin_trap();
+        DEBUG_BREAK;
     }
     strcpy(obj->data.symbol.value, str);
     symbol_table = cons(obj, symbol_table);
@@ -366,7 +366,7 @@ char *get_symbol_value(object *obj)
     if ( ! is_symbol_object(obj))
     {
         fprintf(stderr, "Not a symbol object.\n");
-        __builtin_trap();
+        DEBUG_BREAK;
     }
 
     return obj->data.symbol.value;
@@ -405,7 +405,7 @@ object *make_error(const char *fmt, ...)
     if ( ! obj->data.error.message)
     {
         fprintf(stderr, "Out of memory in %s().", __func__);
-        __builtin_trap();
+        DEBUG_BREAK;
     }
 
     va_start(args, fmt);
@@ -413,7 +413,8 @@ object *make_error(const char *fmt, ...)
     va_end(args);
 
     fprintf(stderr, "%s\n", obj->data.error.message);
-    __builtin_trap();
+    DEBUG_BREAK;
+    return obj;
 }
 
 char is_error_object(object *obj)

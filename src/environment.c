@@ -32,6 +32,9 @@ void populate_environment(object *env)
     define_variable(make_symbol(scheme_name), \
             make_primitive_proc(c_name), env);
 
+    add_procedure("apply"   , apply_fake_proc);
+    add_procedure("eval"    , eval_fake_proc);
+
     add_procedure("cons"    , cons_proc);
     add_procedure("car"     , car_proc);
     add_procedure("cdr"     , cdr_proc);

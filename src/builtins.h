@@ -24,6 +24,9 @@ void set_cdr(object *dst, object *obj);
 #define cadddr(x) car(cdr(cdr(cdr(x))))
 #define caddar(x) car(cdr(cdr(car(x))))
 
+object *apply_fake_proc(object *arguments);
+object *eval_fake_proc(object *arguments);
+
 object *cons_proc(object *arguments);
 object *car_proc(object *arguments);
 object *cdr_proc(object *arguments);

@@ -20,8 +20,8 @@ LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
 DBG=1
 ifeq ($(DBG), 1)
-CFLAGS = -g -O0 -Isrc -Wall -ansi
-CXXFLAGS = -g -O0 -Isrc -Wall
+CFLAGS = -g -O0 -Isrc -Wall -ansi -D_DEBUG
+CXXFLAGS = -g -O0 -Isrc -Wall -D_DEBUG
 LDFLAGS = -lgc
 else
 CFLAGS = -O2 -Isrc -Wall -ansi

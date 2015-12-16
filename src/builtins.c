@@ -26,6 +26,22 @@ long _number_of_args(object *arguments)
     return nr_args;
 }
 
+/* This shall never be called. It is being handled in eval() */
+object *apply_fake_proc(object *arguments)
+{
+    UNUSED(arguments);
+    return make_error("Primitive function 'apply' should not "
+                      "be called natively.");
+}
+
+/* This shall never be called. It is being handled in eval() */
+object *eval_fake_proc(object *arguments)
+{
+    UNUSED(arguments);
+    return make_error("Primitive function 'eval' should not "
+                      "be called natively.");
+}
+
 object *cons(object *a, object *b)
 {
     return make_pair(a, b);
@@ -399,6 +415,7 @@ object *is_real_proc(object *arguments)
 
 object *is_rational_proc(object *arguments)
 {
+    UNUSED(arguments);
     return make_error("'rational?' not implemented yet.");
 }
 
@@ -993,6 +1010,7 @@ object *error_proc(object *arguments)
 
 object *quit_proc(object *arguments)
 {
+    UNUSED(arguments);
     exit(0);
 }
 

@@ -243,7 +243,7 @@ tailcall:
         object *steps;
         object *termination;
         object *body;
-        object *result;
+        object *result = the_empty_list;
 
         /* Initialize the 'local' variables */
         env = extend_environment(

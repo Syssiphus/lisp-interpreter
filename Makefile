@@ -18,14 +18,22 @@ OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 LEGACY_SOURCES = legacy_src/main.c
 LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
-ifeq ($(DBG), 1)
-CFLAGS = -g -O0 -Isrc -Wall -ansi -D_DEBUG
-CXXFLAGS = -g -O0 -Isrc -Wall -D_DEBUG
-LDFLAGS = -lgc
+ifeq ($(PROF), 1)
+PROFFLAG = -pg
+PROFLINK = -pg
 else
-CFLAGS = -O2 -Isrc -Wall -ansi
-CXXFLAGS = -O2 -Isrc -Wall
-LDFLAGS = -lgc
+PROFFLAG =
+PROFLINK =
+endif
+
+ifeq ($(DBG), 1)
+CFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -ansi -D_DEBUG
+CXXFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -D_DEBUG
+LDFLAGS = $(PROFLINK) -lgc
+else
+CFLAGS = $(PROFFLAG) -O2 -Isrc -Wall -ansi
+CXXFLAGS = $(PROFFLAG) -O2 -Isrc -Wall
+LDFLAGS = $(PROFLINK) -lgc
 endif
 
 all: $(TARGET)

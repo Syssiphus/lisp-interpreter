@@ -43,20 +43,24 @@ void populate_environment(object *env)
 
     add_procedure("pair?"   , is_pair_proc);
     add_procedure("boolean?", is_boolean_proc);
+    
+    add_procedure("vector?"      , is_vector_proc);
+    add_procedure("make-vector"  , make_vector_proc);
+    add_procedure("vector-length", vector_length_proc);
+    add_procedure("vector-ref"   , vector_ref_proc);
+    add_procedure("vector-set!"  , vector_set_proc);
 
-    add_procedure("+"       , add_proc);
-    add_procedure("-"       , sub_proc);
-    add_procedure("*"       , mul_proc);
-    add_procedure("/"       , quotient_proc); /* TODO: implement own function */
-
+    add_procedure("+"        , add_proc);
+    add_procedure("-"        , sub_proc);
+    add_procedure("*"        , mul_proc);
+    add_procedure("/"        , quotient_proc); /* TODO: implement own function */
     add_procedure("quotient" , quotient_proc);
     add_procedure("remainder", remainder_proc);
     add_procedure("modulo"   , modulo_proc);
+    add_procedure("floor"    , floor_proc);
 
     add_procedure("make-rectangular", make_rectangular_proc);
     add_procedure("magnitude"       , magnitude_proc);
-
-    add_procedure("floor"    , floor_proc);
 
     add_procedure("mem-usage", mem_usage_proc);
 
@@ -99,8 +103,19 @@ void populate_environment(object *env)
     add_procedure("error"   , error_proc);
     add_procedure("quit"    , quit_proc);
     add_procedure("exit"    , exit_proc);
+    
+    add_procedure("re-pattern", re_pattern_proc);
+    add_procedure("re-match"  , re_match_proc);
+
+    add_procedure("make-socket"  , make_socket_proc);
+    add_procedure("socket-bind"  , socket_bind_proc);
+    add_procedure("socket-listen", socket_listen_proc);
+    add_procedure("socket-accept", socket_accept_proc);
+    add_procedure("socket-close" , close_socket_proc);
+    add_procedure("socket?"      , is_socket_proc);
 
     add_procedure("print-structure" , pretty_print_structure_proc);
+    add_procedure("load-dynlib"     , load_dynlib_proc);
 }
 
 object *extend_environment(object *vars, object *vals, object *base_env)

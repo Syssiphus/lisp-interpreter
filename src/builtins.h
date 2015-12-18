@@ -95,3 +95,21 @@ object *exit_proc(object *arguments);
 
 object *pretty_print_structure_proc(object *arguments);
 
+object *load_dynlib_proc(object *arguments);
+
+object *re_pattern_proc(object *arguments);
+object *re_match_proc(object *arguments);
+
+object *is_vector_proc(object *arguments);
+object *make_vector_proc(object *arguments);
+object *vector_length_proc(object *arguments);
+object *vector_ref_proc(object *arguments);
+object *vector_set_proc(object *arguments);
+
+object *make_socket_proc(object *arguments);
+object *socket_bind_proc(object *arguments);
+object *socket_listen_proc(object *arguments);
+object *socket_accept_proc(object *arguments);
+object *close_socket_proc(object *arguments);
+object *is_socket_proc(object *arguments);
+

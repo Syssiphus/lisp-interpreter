@@ -155,6 +155,34 @@
         ((eq? obj (car (car alist))) (car alist))
         (else (assoc obj (cdr alist)))))
 
+;; vectors
+(define (vector . args)
+  (list->vector args))
+
+(define (vector->list v)
+  (define (vec-to-list vec len acc)
+    (if (zero? len)
+        acc
+        (vec-to-list v (- len 1) (cons (vector-ref v (- len 1)) acc))))
+  (vec-to-list v (vector-length v) '()))
+
+(define (list->vector l)
+  (define (set-values vec l pos len)
+    (if (>= pos len)
+        vec
+        (begin
+          (vector-set! vec pos (car l))
+          (set-values vec (cdr l) (+ pos 1) len))))
+  (let ((len (length l)))
+    (let ((vec (make-vector len)))
+      (set-values vec l 0 len))))
+
+(define (vector-fill! vec obj)
+  (let ((len (vector-length vec)))
+    (do ((i 0 (+ i 1)))
+        ((>= i len))
+      (vector-set! vec i obj))))
+
 ;; Some additional functions
 (define (assert x y)
   (if (eqv? x y)

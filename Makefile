@@ -29,11 +29,11 @@ endif
 ifeq ($(DBG), 1)
 CFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -ansi -D_DEBUG
 CXXFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -D_DEBUG
-LDFLAGS = $(PROFLINK) -lgc
+LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre
 else
 CFLAGS = $(PROFFLAG) -O2 -Isrc -Wall -ansi
 CXXFLAGS = $(PROFFLAG) -O2 -Isrc -Wall
-LDFLAGS = $(PROFLINK) -lgc
+LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre
 endif
 
 all: $(TARGET)

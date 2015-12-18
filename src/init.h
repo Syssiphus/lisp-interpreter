@@ -1,5 +1,5 @@
 
 #pragma once
 
-void init(void);
+void init(int argc, char **argv);
 

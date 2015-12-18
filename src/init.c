@@ -4,9 +4,13 @@
 
 object *make_environment(void);
 void define_variable(object *symbol, object *value, object *env);
+object *cons(object *a, object *b);
 
-void init(void)
+void init(int argc, char **argv)
 {
+    int i;
+    object *args;
+
     /* Initialize the mempool (must be first call) */
     init_memory_pool();
 
@@ -61,5 +65,14 @@ void init(void)
     define_variable(current_output_port_symbol, 
             make_output_port(stdout),
             the_global_environment);
+    
+    /* Argument list */
+    argv_symbol = make_symbol("*argv*");
+    args = the_empty_list;
+    for (i = argc - 1; i >= 0; --i)
+    {
+        args = cons(make_string(argv[i]), args);
+    }
+    define_variable(argv_symbol, args, the_global_environment);
 }
 

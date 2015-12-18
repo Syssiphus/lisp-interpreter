@@ -55,6 +55,7 @@ object *parse_integer(parser_t *p);
 object *parse_double(parser_t *p);
 object *parse_character(parser_t *p);
 object *parse_string(parser_t *p);
+object *parse_vector(parser_t *p);
 object *parse_pair(parser_t *p);
 object *parse_quote(parser_t *p);
 object *parse_eof(parser_t *p);
@@ -70,7 +71,7 @@ void _parser_state(parser_t *p, const char *f, unsigned int l,
  */
 object *read(FILE *in)
 {
-    int i;
+    unsigned long i;
     parser_t p;
     parser_function_t parser_functions[] = {
         parse_symbol,
@@ -79,6 +80,7 @@ object *read(FILE *in)
         parse_integer,
         parse_character,
         parse_string,
+        parse_vector,
         parse_pair,
         parse_quote,
         parse_eof
@@ -225,7 +227,7 @@ char any_char(parser_t *p)
 char string_of(parser_t *p, const char *str)
 {
     size_t s = strlen(str);
-    int i;
+    size_t i;
 
     for (i = 0; i < s; ++i)
     {
@@ -428,12 +430,51 @@ object *parse_eof(parser_t *p)
     return NULL;
 }
 
+object *parse_vector(parser_t *p)
+{
+    if (char_of(p, '#') && char_of(p, '('))
+    {
+        object *list_obj;
+        object *tmp_list_obj;
+        object *vector_obj;
+        unsigned long i = 0;
+        unsigned long length = 0;
+        
+        /* Read the vector as a list and convert it to a 
+           vector object */
+        /* FIXME: Make this better :) */
+        list_obj = read_pair(p);
+        
+        /* count items :( */
+        tmp_list_obj = list_obj;
+        while ( ! is_the_empty_list(tmp_list_obj))
+        {
+            length++;
+            tmp_list_obj = cdr(tmp_list_obj);
+        }
+        
+        /* Create vector and push list to vector */
+        vector_obj = make_vector(length);
+        while ( ! is_the_empty_list(list_obj))
+        {
+            set_vector_item(vector_obj, i, car(list_obj));
+            i++;
+            list_obj = cdr(list_obj);
+        }
+        return vector_obj;
+    }
+
+    parser_rollback(p);
+    return NULL;
+}
+
 object *parse_pair(parser_t *p)
 {
     if (char_of(p, '('))
     {
         return read_pair(p);
     }
+
     return NULL;
 }
 

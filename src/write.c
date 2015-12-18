@@ -1,5 +1,10 @@
 
 #include <stdlib.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <errno.h>
 
 #include "write.h"
 #include "builtins.h"
@@ -56,6 +61,21 @@ void write(FILE *out, object *obj)
     {
         fprintf(out, "()");
     }
+    else if (is_vector_object(obj))
+    {
+        unsigned long i;
+        unsigned long length = get_fixnum_value(vector_length(obj)); 
+        fprintf(out, "#(");
+        for (i = 0; i < length; ++i)
+        {
+            write(out, get_vector_item(obj, i));
+            if (i < length - 1)
+            {
+                fprintf(out, " ");
+            }
+        }
+        fprintf(out, ")");
+    }
     else if (is_pair_object(obj))
     {
         fprintf(out, "(");
@@ -102,6 +122,38 @@ void write(FILE *out, object *obj)
         {
             fprintf(out, "<output port %p>", port);
         }
+    }
+    else if (is_socket_object(obj))
+    {
+        struct sockaddr_in address;
+        socklen_t address_len = sizeof(address);
+        char *address_str = "Unknown";
+        char addrstr[INET_ADDRSTRLEN];
+        unsigned short port = 0;
+
+        if (getsockname(get_socket_fd(obj), 
+                        (struct sockaddr *)&address, 
+                        &address_len) != -1)
+        {
+            if ( ! inet_ntop(address.sin_family, 
+                             &(address.sin_addr), 
+                             addrstr, INET_ADDRSTRLEN))
+            {
+                address_str = strerror(errno);
+            }
+            else
+            {
+                address_str = addrstr;
+                port = ntohs(address.sin_port);
+            }
+        }
+
+        fprintf(out, "<socket address \"%s\" port %d>", address_str, port);
+    }
+    else if (is_re_pattern_object(obj))
+    {
+        fprintf(out, "<regex pattern: \"%s\">", 
+                get_re_pattern_string(obj));
     }
     else
     {

@@ -4,6 +4,16 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
+#include <pcre.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <netinet/in.h>
+
+#include <dlfcn.h>
+/* Does this work? stdbool.h is included through dlfcn.h and defines true/false
+   but we already use true/false as objects. Maybe the undef's wont hurt */
+#undef true
+#undef false
 
 #include "globals.h"
 #include "builtins.h"
@@ -726,7 +736,7 @@ object *load_proc(object *arguments)
     }
 
     filename = car(arguments)->data.string.value;
-    in = fopen(filename, "r");
+    in = fopen(filename, "r+");
     if (in == NULL)
     {
         return make_error("Unable to open file '%s' (%s).", 
@@ -756,7 +766,7 @@ object *open_input_file_proc(object *arguments)
     FILE * input_file;
     const char * filename = get_string_value(car(arguments));
 
-    input_file = fopen(filename, "r");
+    input_file = fopen(filename, "r+");
     if ( ! input_file)
     {
         return make_error("Unable to open input file '%s'. (%s)"
@@ -771,7 +781,7 @@ object *open_output_file_proc(object *arguments)
     FILE * output_file;
     const char * filename = get_string_value(car(arguments));
 
-    output_file = fopen(filename, "w");
+    output_file = fopen(filename, "w+");
     if ( ! output_file)
     {
         return make_error("Unable to open output file '%s'. (%s)"
@@ -1069,6 +1079,9 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
             _pretty_print(arguments->data.compound_proc.parameters, indent, 0);
             _pretty_print(arguments->data.compound_proc.body, indent, 1);
             break;
+        case VECTOR:
+            fprintf(stdout, "VECTOR\n");
+            break;
         case PAIR:
             fprintf(stdout, "PAIR\n");
             _pretty_print(car(arguments), indent, 1);
@@ -1089,6 +1102,13 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
         case OUTPUT_PORT:
             fprintf(stdout, "OUTPUT_PORT\n");
             break;
+        case SOCKET:
+            fprintf(stdout, "SOCKET\n");
+            break;
+        case RE_PATTERN:
+            fprintf(stdout, "RE_PATTERN: \"%s\"\n", 
+                    get_re_pattern_string(arguments));
+            break;
         case END_OF_FILE:
             fprintf(stdout, "EOF\n");
             break;
@@ -1097,7 +1117,387 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
 
 object *pretty_print_structure_proc(object *arguments)
 {
-    _pretty_print(arguments, "", 0);
+    _pretty_print(car(arguments), "", 0);
     return ok_symbol;
 }
+
+object *load_dynlib_proc(object *arguments)
+{
+    long argnr = _number_of_args(arguments);
+    object *filename;
+    object *verbose = true;
+    void *handle;
+    char *error;
+    object *(*init_fn)(void);
+
+    if (argnr == 0 || argnr > 2)
+    {
+        return make_error("'load-dynlib' takes at least 1 argument and at most 2.");
+    }
+    
+    filename = car(arguments);
+    if ( ! is_the_empty_list(cdr(arguments)))
+    {
+        verbose = cadr(arguments);
+    }
+    
+    handle = dlopen(get_string_value(filename), RTLD_NOW);
+    if ( ! handle)
+    {
+        fprintf(stderr, 
+                "Unable to load dynamic library '%s', Error: %s\n", 
+                get_string_value(filename), dlerror());
+        return false;
+    }
+    
+    init_fn = dlsym(handle, "init_dynlib");
+    if ((error = dlerror()) != NULL)
+    {
+        fprintf(stderr, 
+                "Unable to initialize dynamic library '%s', Error: %s\n", 
+                get_string_value(filename), error);
+        return false;
+    }
+    
+    return init_fn();
+}
+
+object *re_pattern_proc(object *arguments)
+{
+    object *arg = car(arguments);
+
+    if ( _number_of_args(arguments) != 1)
+    {
+        return make_error("'re-pattern' takes exactly 1 argument.");
+    }
+
+    if ( ! is_string_object(arg))
+    {
+        return make_error("'re-pattern' needs a STRING as argument.");
+    }
+
+    return make_re_pattern(get_string_value(arg));
+}
+
+object *call_re_pattern_proc(char *pattern)
+{
+    return re_pattern_proc(cons(make_string(pattern), the_empty_list));
+}
+
+object *re_match_proc(object *arguments)
+{
+#define OVECCOUNT 30
+    object *result = the_empty_list;
+    object *re_pattern;
+    char   *input;
+    int rc, i;
+    int ovector[OVECCOUNT];
+    
+    if ( _number_of_args(arguments) != 2)
+    {
+        return make_error("'re-match' expects 2 arguments.");
+    }
+    
+    if ( ! is_string_object(car(arguments)) 
+         && ! is_re_pattern_object(car(arguments)))
+    {
+        return make_error("'re-match' expects a STRING or a RE_PATTERN "
+                          "as first argument.");
+    }
+    
+    if ( ! is_string_object(cadr(arguments)))
+    {
+        return make_error("'re-match' expects a STRING as second argument.");
+    }
+
+    if (is_string_object(car(arguments)))
+    {
+        char *pattern = get_string_value(car(arguments));
+        re_pattern = call_re_pattern_proc(pattern);
+    }
+    else
+    {
+        re_pattern = car(arguments);
+    }
+    
+    input   = get_string_value(cadr(arguments));
+    
+    rc = pcre_exec(get_re_pattern_value(re_pattern), NULL, input, 
+                   strlen(input), 0, 0, ovector, OVECCOUNT);
+
+    if (rc < 0)
+    {
+        switch (rc)
+        {
+            case PCRE_ERROR_NOMATCH:
+                return result; /* shortcut, skip the rest of the func */
+
+            default:
+                return make_error("Matching error: %d", rc);
+        }
+    }
+    
+    if (rc == 0)
+    {
+        rc = OVECCOUNT/3;
+        /* printf("ovector only has room for %d "
+           "captured substrings\n", rc - 1); */
+    }
+
+    for (i = rc-1; i >= 0; i--)
+    {
+        char *stringcopy;
+        char *substring_start = input + ovector[2*i];
+        int substring_length = ovector[2*i+1] - ovector[2*i];
+        /* printf("%2d: %.*s\n", i, substring_length, substring_start); */
+
+        stringcopy = GC_malloc(substring_length + 1);
+        if ( ! stringcopy)
+        {
+            fprintf(stderr, "Out of memory.\n");
+            exit(1);
+        }
+        strncpy(stringcopy, substring_start, substring_length);
+        result = cons(make_string(stringcopy), result);
+        GC_free(stringcopy); /* Explicitly collect the GC object */
+    }
+    
+    return result;
+}
+
+object *is_vector_proc(object *arguments)
+{
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'vector?' takes exactly 1 argument.");
+    }
+    
+    return is_vector_object(car(arguments)) ? true : false;
+}
+
+object *make_vector_proc(object *arguments)
+{
+    long arity = _number_of_args(arguments);
+    long size;
+    object *vector;
+
+    if (arity != 1 && arity != 2)
+    {
+        return make_error("'make-vector' takes 1 or 2 argument.");
+    }
+    
+    if ( ! is_fixnum_object(car(arguments)))
+    {
+        return make_error("'make-vector' needs a fixnum as the "
+                          "first argument.");
+    }
+
+    size = get_fixnum_value(car(arguments));
+    vector = make_vector(size);
+
+    if (arity == 2)
+    {
+        object *filler = cadr(arguments);
+        long i;
+        for (i = 0; i < size; ++i)
+        {
+            set_vector_item(vector, i, filler);
+        }
+    }
+    
+    return vector;
+}
+
+object *vector_length_proc(object *arguments)
+{
+    long arity = _number_of_args(arguments);
+
+    if (arity != 1)
+    {
+        return make_error("'vector-length' takes exactly 1 argument.");
+    }
+    
+    return vector_length(car(arguments));
+}
+
+object *vector_ref_proc(object *arguments)
+{
+    long arity = _number_of_args(arguments);
+
+    if (arity != 2)
+    {
+        return make_error("'vector-length' takes exactly 2 argument.");
+    }
+    
+    return get_vector_item(car(arguments), get_fixnum_value(cadr(arguments)));
+}
+
+object *vector_set_proc(object *arguments)
+{
+    long arity = _number_of_args(arguments);
+
+    if (arity != 3)
+    {
+        return make_error("'vector-length' takes exactly 3 argument.");
+    }
+    
+    return set_vector_item(car(arguments), get_fixnum_value(cadr(arguments)),
+                           caddr(arguments));
+}
+
+object *make_socket_proc(object *arguments)
+{
+    if (_number_of_args(arguments) != 0)
+    {
+        return make_error("'make-socket' takes no arguments.");
+    }
+    
+    return make_socket();
+}
+
+object *socket_bind_proc(object *arguments)
+{
+    object *socket, *port;
+    struct sockaddr_in serv_addr;
+    long portno;
+
+    if (_number_of_args(arguments) != 2)
+    {
+        return make_error("'socket-bind' expects 2 arguments.");
+    }
+    
+    socket = car(arguments);
+    port = cadr(arguments);
+    
+    if ( ! is_socket_object(socket))
+    {
+        return make_error("'socket-bind' expects a SOCKET as first argument.");
+    }
+    
+    if ( ! is_fixnum_object(port))
+    {
+        return make_error("'socket-bind' expects a FIXNUM as second argument'");
+    }
+    
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    portno = get_fixnum_value(port);
+    
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(portno);
+
+    if (bind(socket->data.socket.fd, 
+             (struct sockaddr *) &serv_addr, 
+             sizeof(serv_addr)) < 0) 
+    {
+        return make_error("'socket-bind' error: %s",
+                          strerror(errno));
+    }
+    
+    return ok_symbol;
+}
+
+object *socket_listen_proc(object *arguments)
+{
+    object *socket, *backlog;
+
+    if (_number_of_args(arguments) != 2)
+    {
+        return make_error("'socket-listen' expects 2 arguments.");
+    }
+    
+    socket = car(arguments);
+    backlog = cadr(arguments);
+
+    if ( ! is_socket_object(socket))
+    {
+        return make_error("'socket-listen' expects a SOCKET as "
+                          "first argument.");
+    }
+
+    if ( ! is_fixnum_object(backlog))
+    {
+        return make_error("'socket-listen' expects a FIXNUM as "
+                          "second argument.");
+    }
+    
+    if (listen(get_socket_fd(socket), get_fixnum_value(backlog)) == -1)
+    {
+        return make_error("'socket-listen' error: %s",
+                          strerror(errno));
+    }
+
+    return ok_symbol;
+}
+
+object *socket_accept_proc(object *arguments)
+{
+    object *socket;
+    socklen_t clilen;
+    int newsockfd;
+    struct sockaddr_in cli_addr;
+
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'socket-accept' expects 1 argument.");
+    }
+    
+    socket = car(arguments);
+    
+    if ( ! is_socket_object(socket))
+    {
+        return make_error("'socket-listen' expects a SOCKET as "
+                          "first argument.");
+    }
+
+    clilen = sizeof(cli_addr);
+   /* Accept actual connection from the client */
+    newsockfd = accept(get_socket_fd(socket), 
+                       (struct sockaddr *)&cli_addr, 
+                       &clilen);
+	
+    if (newsockfd < 0) 
+    {
+        return make_error("'socket-listen' error: %s",
+                          strerror(errno));
+    }
+    
+    return make_socket_from_fd(newsockfd);
+}
+
+object *close_socket_proc(object *arguments)
+{
+    object *socket;
+
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'socket-close' takes exactly 1 argument.");
+    }
+    
+    socket = car(arguments);
+    
+    if ( ! is_socket_object(socket))
+    {
+        return make_error("'socket-close' expects a SOCKET as first argument.");
+    }
+    
+    close_socket(socket);
+    return ok_symbol;
+}
+
+object *is_socket_proc(object *arguments)
+{
+    object *socket;
+
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'socket?' takes exactly 1 argument.");
+    }
+    
+    socket = car(arguments);
+    
+    return is_socket_object(socket) ? true : false;
+}
+
+
 

@@ -12,11 +12,11 @@ object *load_file(char *filename);
 
 int main(int argc, char** argv)
 {
-    fprintf(stdout, "Welcome to Scheme. (R5RS)\n"
+    fprintf(stdout, "Welcome to Scheme. (soon to be R5RS compliant)\n"
             "Written by B.Paschen (bpaschen@googlemail.com)\n"
             "Use Ctrl-C to exit.\n");
 
-    init();
+    init(argc, argv);
     
     /* Read in the standard lib functions */
     fprintf(stdout, "Loading 'stdlib.scm'... ");

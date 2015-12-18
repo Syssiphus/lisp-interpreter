@@ -4,6 +4,10 @@
 #include <string.h>
 #include <stdarg.h>
 #include <gc.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <errno.h>
 
 #include "globals.h"
 #include "object.h"
@@ -378,6 +382,52 @@ char is_the_empty_list(object *obj)
     return obj->type == THE_EMPTY_LIST;
 }
 
+/** VECTORS */
+object *make_vector(size_t size)
+{
+    object *obj = alloc_object();
+    obj->type = VECTOR;
+    obj->data.vector.items = GC_malloc(size * sizeof(object *));
+    if ( ! obj->data.vector.items)
+    {
+        fprintf(stderr, "Out of memory.\n");
+        exit(1);
+    }
+    obj->data.vector.length = size;
+    return obj;
+}
+
+char is_vector_object(object *obj)
+{
+    return obj->type == VECTOR;
+}
+
+object *get_vector_item(object *vector, size_t pos)
+{
+    if (pos >= vector->data.vector.length)
+    {
+        return make_error("Illegal index %ld to vector of size %ld.", 
+                          pos, vector->data.vector.length);
+    }
+    return vector->data.vector.items[pos];
+}
+
+object *set_vector_item(object *vector, size_t pos, object *obj)
+{
+    if (pos >= vector->data.vector.length)
+    {
+        return make_error("Illegal index %ld to vector of size %ld.", 
+                          pos, vector->data.vector.length);
+    }
+    vector->data.vector.items[pos] = obj;
+    return ok_symbol;
+}
+
+object *vector_length(object *vector)
+{
+    return make_fixnum(vector->data.vector.length);
+}
+
 /* Pairs */
 object *make_pair(object *a, object *b)
 {
@@ -466,6 +516,7 @@ FILE *get_eof_stream(object *obj)
 
 void close_input_port_on_collect(void *obj, void *arg)
 {
+    UNUSED(arg);
     close_input_port((object *)obj);
 }
 
@@ -499,6 +550,7 @@ void close_input_port(object *obj)
 
 void close_output_port_on_collect(void *obj, void *arg)
 {
+    UNUSED(arg);
     close_output_port((object *)obj);
 }
 
@@ -527,6 +579,65 @@ void close_output_port(object *obj)
     {
         fclose(obj->data.output_port.stream);
         obj->data.output_port.stream = NULL;
+    }
+}
+
+void close_socket_on_collect(void *obj, void *arg)
+{
+    UNUSED(arg);
+    close_socket((object *)obj);
+}
+
+object *make_socket(void)
+{
+    object *obj;
+    
+    obj = alloc_with_finalizer(close_socket_on_collect);
+    obj->type = SOCKET;
+    obj->data.socket.fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (obj->data.socket.fd == -1)
+    {
+        return make_error("Error creating the socket: %s",
+                          strerror(errno));
+    }
+    obj->data.socket.stream = NULL;
+    
+    return obj;
+}
+
+object *make_socket_from_fd(int fd)
+{
+    object *obj;
+    
+    obj = alloc_with_finalizer(close_socket_on_collect);
+    obj->type = SOCKET;
+    obj->data.socket.fd = fd;
+    obj->data.socket.stream = NULL;
+    
+    return obj;
+}
+
+char is_socket_object(object *obj)
+{
+    return obj->type == SOCKET;
+}
+
+int get_socket_fd(object *obj)
+{
+    return obj->data.socket.fd;
+}
+
+void close_socket(object *obj)
+{
+    if (obj->data.socket.fd != -1)
+    {
+        if (close(obj->data.socket.fd) == -1)
+        {
+            fprintf(stderr, "Error while closing socket: %s\n",
+                    strerror(errno));
+            exit(1);
+        }
+        obj->data.socket.fd = -1;
     }
 }
 
@@ -560,4 +671,49 @@ char is_compound_proc_object(object *obj)
     return obj->type == COMPOUND_PROC;
 }
 
+void clean_up_re_pattern(void *obj, void *arg)
+{
+    object * realobj = (object *)obj;
+    UNUSED(arg);
 
+    if(realobj->data.re_pattern.pattern)
+    {
+        free(realobj->data.re_pattern.pattern);
+    }
+}
+
+object *make_re_pattern(const char *pattern_string)
+{
+    object *obj;
+    const char * error;
+    int erroffset;
+    
+    obj = alloc_with_finalizer(clean_up_re_pattern);
+    obj->type = RE_PATTERN;
+    obj->data.re_pattern.pattern_string = GC_malloc(strlen(pattern_string) + 1);
+    strcpy(obj->data.re_pattern.pattern_string, pattern_string);
+    obj->data.re_pattern.pattern = pcre_compile(pattern_string, 
+                                                0, &error, &erroffset, NULL);
+    if ( ! obj->data.re_pattern.pattern)
+    {
+        return make_error("failed to compile regex pattern '%s'.", 
+                          pattern_string);
+    }
+    
+    return obj;
+}
+
+char is_re_pattern_object(object *obj)
+{
+    return obj->type == RE_PATTERN;
+}
+
+const char * get_re_pattern_string(object *obj)
+{
+    return obj->data.re_pattern.pattern_string;
+}
+
+pcre *get_re_pattern_value(object *obj)
+{
+    return obj->data.re_pattern.pattern;
+}

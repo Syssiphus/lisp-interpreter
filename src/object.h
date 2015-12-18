@@ -2,6 +2,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <pcre.h>
 
 typedef enum 
 {
@@ -11,6 +12,7 @@ typedef enum
 , BOOLEAN        /* Truth type (boolean) */
 , CHARACTER      /* Character type */
 , STRING         /* String type */
+, VECTOR         /* Vector type */
 , PAIR           /* Cons cell (Pair type) */
 , SYMBOL         /* Symbol type */
 , PRIMITIVE_PROC /* Primitive procedure */
@@ -19,6 +21,8 @@ typedef enum
 , ERROR          /* Error object */
 , INPUT_PORT     /* Input port object */
 , OUTPUT_PORT    /* Output port object */
+, SOCKET         /* Socket object */
+, RE_PATTERN     /* Regular expression pattern */
 , END_OF_FILE    /* End of file type (no idea if this is good)*/
 } object_type;
 
@@ -72,6 +76,12 @@ typedef struct object
 
         struct
         {
+            struct object **items;
+            size_t length;
+        } vector;
+
+        struct
+        {
             struct object *car;
             struct object *cdr;
         } pair;
@@ -93,6 +103,12 @@ typedef struct object
 
         struct
         {
+            int  fd;
+            FILE *stream;
+        } socket;
+
+        struct
+        {
             primitive_proc_t fn;
         } primitive_proc;
 
@@ -102,6 +118,12 @@ typedef struct object
             struct object *body;
             struct object *env;
         } compound_proc;
+        
+        struct
+        {
+            char *pattern_string;
+            pcre *pattern;
+        } re_pattern;
 
         struct
         {
@@ -149,6 +171,12 @@ char *get_symbol_value(object *obj);
 
 char is_the_empty_list(object *obj);
 
+object *make_vector(size_t size);
+char is_vector_object(object *obj);
+object *get_vector_item(object *vector, size_t pos);
+object *set_vector_item(object *vector, size_t pos, object *obj);
+object *vector_length(object *vector);
+
 object *make_pair(object *a, object *b);
 char is_pair_object(object *obj);
 
@@ -174,6 +202,12 @@ char is_output_port_object(object *obj);
 FILE *get_output_port_stream(object *obj);
 void close_output_port(object *obj);
 
+object *make_socket(void);
+object *make_socket_from_fd(int fd);
+char is_socket_object(object *obj);
+int get_socket_fd(object *obj);
+void close_socket(object *obj);
+
 object *make_lambda(object *arguments, object *body);
 object *make_begin(object *obj);
 object *make_assignment(object *var, object *value);
@@ -181,5 +215,8 @@ object *make_assignment(object *var, object *value);
 object *make_compound_proc(object *parameters, object *body, object *env);
 char is_compound_proc_object(object *obj);
 
-
+object *make_re_pattern(const char *pattern_string);
+char is_re_pattern_object(object *obj);
+const char *get_re_pattern_string(object *obj);
+pcre *get_re_pattern_value(object *obj);
 

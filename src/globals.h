@@ -59,4 +59,5 @@ object *current_input_port_symbol;
 object *current_output_port_symbol;
 object *write_char_symbol;
 
+object *argv_symbol;
 

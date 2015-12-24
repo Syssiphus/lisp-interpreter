@@ -3,6 +3,8 @@
 (define width 4.0)
 (define i-max 800)
 (define j-max 600)
+;(define i-max 160)
+;(define j-max 100)
 (define n 100)
 (define r-max 2.0)
 (define file "out.pgm")
@@ -12,20 +14,17 @@
 (define y-offset (+ y-centre (* 0.5 pixel-size (+ j-max 1))))
  
 (define (inside? z)
-  (define (*inside? z-0 z n)
-    (and (< (magnitude z) r-max)
-         (or (= n 0)
-             (*inside? z-0 (+ (* z z) z-0) (- n 1)))))
+  (define (*inside? z-0 z i)
+    (if (or (>= (magnitude z) r-max)
+            (= i 0))
+        (- n i)
+        (*inside? z-0 (+ (* z z) z-0) (- i 1))))
   (*inside? z 0 n))
- 
-(define (boolean->integer b)
-  (if b colour-max 0))
- 
+
 (define (pixel i j)
-  (boolean->integer
-    (inside?
-      (make-rectangular (+ x-offset (* pixel-size i))
-                        (- y-offset (* pixel-size j))))))
+  (inside?
+   (make-rectangular (+ x-offset (* pixel-size i))
+                     (- y-offset (* pixel-size j)))))
  
 (define plot
   (lambda ()

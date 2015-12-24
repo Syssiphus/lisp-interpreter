@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 
 #include "globals.h"
 #include "environment.h"
 #include "builtins.h"
+
+#include "uthash.h"
 
 object *make_frame(object *vars, object *vals);
 object *frame_variables(object *frame);
@@ -99,6 +102,8 @@ void populate_environment(object *env)
     add_procedure("char->integer"   , char_to_int_proc);
     add_procedure("integer->char"   , int_to_char_proc);
     add_procedure("number->string"  , number_to_string_proc);
+    add_procedure("list->string"    , list_to_string_proc);
+    add_procedure("string->list"    , string_to_list_proc);
 
     add_procedure("error"   , error_proc);
     add_procedure("quit"    , quit_proc);
@@ -113,6 +118,16 @@ void populate_environment(object *env)
     add_procedure("socket-accept", socket_accept_proc);
     add_procedure("socket-close" , close_socket_proc);
     add_procedure("socket?"      , is_socket_proc);
+    
+    add_procedure("select" , select_proc);
+    
+    add_procedure("sleep", sleep_proc);
+    
+    add_procedure("write-char", write_char_proc);
+    add_procedure("read-char" , read_char_proc);
+    
+    add_procedure("write", write_proc);
+    add_procedure("read", read_proc);
 
     add_procedure("print-structure" , pretty_print_structure_proc);
     add_procedure("load-dynlib"     , load_dynlib_proc);
@@ -205,12 +220,20 @@ object *find_variable(object *symbol, object *env)
         object *frame = first_frame(env);
         object *vars = frame_variables(frame);
         object *vals = frame_values(frame);
+        object *stored_symbol;
+
         while ( ! is_the_empty_list(vars))
         {
-            if (strcmp(get_symbol_value(symbol), 
-                        get_symbol_value(car(vars))) == 0)
+            stored_symbol = car(vars);
+
+            if (get_symbol_size(symbol) == get_symbol_size(stored_symbol))
             {
-                return car(vals);
+                if (bcmp(get_symbol_value(symbol),
+                         get_symbol_value(stored_symbol),
+                         get_symbol_size(symbol)) == 0)
+                {
+                    return car(vals);
+                }
             }
             vars = cdr(vars);
             vals = cdr(vals);
@@ -247,5 +270,6 @@ object *definition_value(object *exp)
 
 object *load_file(char *filename)
 {
-    return load_proc(cons(make_string(filename), the_empty_list));
+    return load_proc(cons(make_string(filename), the_empty_list), 
+                     the_global_environment);
 }

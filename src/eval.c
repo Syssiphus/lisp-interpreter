@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "globals.h"
 #include "eval.h"
@@ -94,9 +95,20 @@ tailcall:
     }
     else if (is_if(expr))
     {
-        expr = is_true(eval(cadr(expr), env))
-            ? caddr(expr)
-            : cadddr(expr);
+        if (is_the_empty_list(cdddr(expr)))
+        {
+            /* Without else */
+            expr = is_true(eval(cadr(expr), env))
+                ? caddr(expr)
+                : the_empty_list;
+        }
+        else
+        {
+            /* With an else */
+            expr = is_true(eval(cadr(expr), env))
+                ? caddr(expr)
+                : cadddr(expr);
+        }
         goto tailcall;
     }
     else if (is_cond(expr))
@@ -155,22 +167,6 @@ tailcall:
         }
         expr = car(expr);
         goto tailcall;
-    }
-    else if (is_write_char(expr))
-    {
-        /* Implemented here because we need the environment */
-        object *port = find_variable(current_output_port_symbol, env);
-        object *character = eval(cadr(expr), env);
-
-        if(cddr(expr) != the_empty_list)
-        {
-            port = eval(caddr(expr), env);
-        }
-
-        fprintf(get_output_port_stream(port), "%c", 
-                get_character_value(character));
-
-        return ok_symbol;
     }
     else if (is_with_output_to_file(expr))
     {
@@ -300,7 +296,7 @@ tailcall:
 
         if (is_primitive_proc_object(procedure))
         {
-            return (procedure->data.primitive_proc.fn)(arguments);
+            return (procedure->data.primitive_proc.fn)(arguments, env);
         }
         else if (is_compound_proc_object(procedure))
         {
@@ -369,11 +365,15 @@ char is_self_evaluating(object *obj)
 {
     return is_fixnum_object(obj)
         || is_realnum_object(obj)
+        || is_complexnum_object(obj)
         || is_character_object(obj)
         || is_string_object(obj)
         || is_boolean_object(obj)
         || is_the_empty_list(obj)
         || is_error_object(obj)
+        || is_socket_object(obj)
+        || is_input_port_object(obj)
+        || is_output_port_object(obj)
         || is_primitive_proc_object(obj)
         ;
 }
@@ -524,11 +524,6 @@ object *eval_cond(object *obj, object *env)
 {
     UNUSED(env);
     return make_cond(cdr(obj));
-}
-
-char is_write_char(object *obj)
-{
-    return is_tagged_list(obj, write_char_symbol);
 }
 
 char is_with_output_to_file(object *obj)

@@ -3,11 +3,43 @@
 
 #include "object.h"
 
-object *cons(object *a, object *b);
-object *car(object *obj);
-object *cdr(object *obj);
-void set_car(object *dst, object *obj);
-void set_cdr(object *dst, object *obj);
+__attribute__((always_inline))
+static inline object *cons(object *a, object *b)
+{
+    return make_pair(a, b);
+}
+
+__attribute__((always_inline))
+static inline object *car(object *obj)
+{
+    if (is_pair_object(obj))
+    {
+        return obj->data.pair.car;
+    }
+    return make_error("Not a pair object.");
+}
+
+__attribute__((always_inline))
+static inline object *cdr(object *obj)
+{
+    if (is_pair_object(obj))
+    {
+        return obj->data.pair.cdr;
+    }
+    return make_error("Not a pair object.");
+}
+
+__attribute__((always_inline))
+static inline void set_car(object *dst, object *obj)
+{
+    dst->data.pair.car = obj;
+}
+
+__attribute__((always_inline))
+static inline void set_cdr(object *dst, object *obj)
+{
+    dst->data.pair.cdr = obj;
+}
 
 #define caar(x) car(car(x))
 #define cadr(x) car(cdr(x))
@@ -24,92 +56,102 @@ void set_cdr(object *dst, object *obj);
 #define cadddr(x) car(cdr(cdr(cdr(x))))
 #define caddar(x) car(cdr(cdr(car(x))))
 
-object *apply_fake_proc(object *arguments);
-object *eval_fake_proc(object *arguments);
+object *apply_fake_proc(object *arguments, object *env);
+object *eval_fake_proc(object *arguments, object *env);
 
-object *cons_proc(object *arguments);
-object *car_proc(object *arguments);
-object *cdr_proc(object *arguments);
-object *set_car_proc(object *arguments);
-object *set_cdr_proc(object *arguments);
+object *cons_proc(object *arguments, object *env);
+object *car_proc(object *arguments, object *env);
+object *cdr_proc(object *arguments, object *env);
+object *set_car_proc(object *arguments, object *env);
+object *set_cdr_proc(object *arguments, object *env);
 
-object *is_pair_proc(object *arguments);
-object *is_boolean_proc(object *arguments);
+object *is_pair_proc(object *arguments, object *env);
+object *is_boolean_proc(object *arguments, object *env);
 
-object *add_proc(object *arguments);
-object *sub_proc(object *arguments);
-object *mul_proc(object *arguments);
+object *add_proc(object *arguments, object *env);
+object *sub_proc(object *arguments, object *env);
+object *mul_proc(object *arguments, object *env);
 
-object *quotient_proc(object *arguments);
-object *remainder_proc(object *arguments);
-object *modulo_proc(object *arguments);
+object *quotient_proc(object *arguments, object *env);
+object *remainder_proc(object *arguments, object *env);
+object *modulo_proc(object *arguments, object *env);
 
-object *floor_proc(object *arguments);
+object *floor_proc(object *arguments, object *env);
 
-object *length_proc(object *arguments);
+object *length_proc(object *arguments, object *env);
 
-object *mem_usage_proc(object *obj);
+object *mem_usage_proc(object *obj, object *env);
 
-object *is_number_proc(object *arguments);
-object *is_complex_proc(object *arguments);
-object *is_real_proc(object *arguments);
-object *is_rational_proc(object *arguments);
-object *is_integer_proc(object *arguments);
+object *is_number_proc(object *arguments, object *env);
+object *is_complex_proc(object *arguments, object *env);
+object *is_real_proc(object *arguments, object *env);
+object *is_rational_proc(object *arguments, object *env);
+object *is_integer_proc(object *arguments, object *env);
 
-object *make_rectangular_proc(object *arguments);
-object *magnitude_proc(object *arguments);
+object *make_rectangular_proc(object *arguments, object *env);
+object *magnitude_proc(object *arguments, object *env);
 
-object *is_eqv_proc(object *arguments);
-object *is_eq_proc(object *arguments);
-object *is_symbol_proc(object *arguments);
-object *is_symbol_equal_proc(object *arguments);
-object *is_number_equal_proc(object *arguments);
-object *is_number_lt_proc(object *arguments);
-object *is_number_gt_proc(object *arguments);
-object *is_number_lteq_proc(object *arguments);
-object *is_number_gteq_proc(object *arguments);
+object *is_eqv_proc(object *arguments, object *env);
+object *is_eq_proc(object *arguments, object *env);
+object *is_symbol_proc(object *arguments, object *env);
+object *is_symbol_equal_proc(object *arguments, object *env);
+object *is_number_equal_proc(object *arguments, object *env);
+object *is_number_lt_proc(object *arguments, object *env);
+object *is_number_gt_proc(object *arguments, object *env);
+object *is_number_lteq_proc(object *arguments, object *env);
+object *is_number_gteq_proc(object *arguments, object *env);
 
-object *load_proc(object *arguments);
+object *load_proc(object *arguments, object *env);
 
-object *open_input_file_proc(object *arguments);
-object *open_output_file_proc(object *arguments);
-object *is_input_port_proc(object *arguments);
-object *is_output_port_proc(object *arguments);
+object *open_input_file_proc(object *arguments, object *env);
+object *open_output_file_proc(object *arguments, object *env);
+object *is_input_port_proc(object *arguments, object *env);
+object *is_output_port_proc(object *arguments, object *env);
 
-object *is_string_equal_proc(object *arguments);
-object *is_string_proc(object *arguments);
-object *make_string_proc(object *arguments);
-object *string_length_proc(object *arguments);
-object *string_ref_proc(object *arguments);
-object *string_set_proc(object *arguments);
-object *number_to_string_proc(object *arguments);
+object *is_string_equal_proc(object *arguments, object *env);
+object *is_string_proc(object *arguments, object *env);
+object *make_string_proc(object *arguments, object *env);
+object *string_length_proc(object *arguments, object *env);
+object *string_ref_proc(object *arguments, object *env);
+object *string_set_proc(object *arguments, object *env);
+object *number_to_string_proc(object *arguments, object *env);
+object *list_to_string_proc(object *arguments, object *env);
+object *string_to_list_proc(object *arguments, object *env);
 
-object *is_char_proc(object *arguments);
-object *is_character_equal_proc(object *arguments);
-object *char_to_int_proc(object *arguments);
-object *int_to_char_proc(object *arguments);
+object *is_char_proc(object *arguments, object *env);
+object *is_character_equal_proc(object *arguments, object *env);
+object *char_to_int_proc(object *arguments, object *env);
+object *int_to_char_proc(object *arguments, object *env);
 
-object *error_proc(object *arguments);
-object *quit_proc(object *arguments);
-object *exit_proc(object *arguments);
+object *error_proc(object *arguments, object *env);
+object *quit_proc(object *arguments, object *env);
+object *exit_proc(object *arguments, object *env);
 
-object *pretty_print_structure_proc(object *arguments);
+object *pretty_print_structure_proc(object *arguments, object *env);
 
-object *load_dynlib_proc(object *arguments);
+object *load_dynlib_proc(object *arguments, object *env);
 
-object *re_pattern_proc(object *arguments);
-object *re_match_proc(object *arguments);
+object *re_pattern_proc(object *arguments, object *env);
+object *re_match_proc(object *arguments, object *env);
 
-object *is_vector_proc(object *arguments);
-object *make_vector_proc(object *arguments);
-object *vector_length_proc(object *arguments);
-object *vector_ref_proc(object *arguments);
-object *vector_set_proc(object *arguments);
+object *is_vector_proc(object *arguments, object *env);
+object *make_vector_proc(object *arguments, object *env);
+object *vector_length_proc(object *arguments, object *env);
+object *vector_ref_proc(object *arguments, object *env);
+object *vector_set_proc(object *arguments, object *env);
 
-object *make_socket_proc(object *arguments);
-object *socket_bind_proc(object *arguments);
-object *socket_listen_proc(object *arguments);
-object *socket_accept_proc(object *arguments);
-object *close_socket_proc(object *arguments);
-object *is_socket_proc(object *arguments);
+object *make_socket_proc(object *arguments, object *env);
+object *socket_bind_proc(object *arguments, object *env);
+object *socket_listen_proc(object *arguments, object *env);
+object *socket_accept_proc(object *arguments, object *env);
+object *close_socket_proc(object *arguments, object *env);
+object *is_socket_proc(object *arguments, object *env);
 
+object *select_proc(object *arguments, object *env);
+object *sleep_proc(object *arguments, object *env);
+
+object *write_char_proc(object *arguments, object *env);
+object *read_char_proc(object *arguments, object *env);
+
+object *write_proc(object *arguments, object *env);
+object *read_proc(object *arguments, object *env);

@@ -57,7 +57,6 @@ object *or_symbol;
 object *with_output_to_file_symbol;
 object *current_input_port_symbol;
 object *current_output_port_symbol;
-object *write_char_symbol;
 
 object *argv_symbol;
 

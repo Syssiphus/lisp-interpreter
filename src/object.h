@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <pcre.h>
 
+#include "defines.h"
+
+#include "uthash.h"
+
 typedef enum 
 {
   FIXNUM         /* Integer number (64 bit) */
@@ -28,7 +32,7 @@ typedef enum
 
 struct object;
 
-typedef struct object *(*primitive_proc_t)(struct object *);
+typedef struct object *(*primitive_proc_t)(struct object *, struct object *);
 
 typedef struct object
 {
@@ -71,7 +75,9 @@ typedef struct object
 
         struct
         {
-            char *value;
+            char   *value;
+            size_t size;
+            UT_hash_handle hh;
         } symbol;
 
         struct
@@ -104,7 +110,6 @@ typedef struct object
         struct
         {
             int  fd;
-            FILE *stream;
         } socket;
 
         struct
@@ -133,15 +138,17 @@ typedef struct object
 } object;
 
 object *make_fixnum(long num);
-char is_fixnum_object(object *obj);
+_static_inline_ char is_fixnum_object(object *obj) {return obj->type == FIXNUM;}
 long get_fixnum_value(object *obj);
 
 object *make_realnum(double num);
-char is_realnum_object(object *obj);
+_static_inline_ char 
+is_realnum_object(object *obj) {return obj->type == REALNUM;}
 double get_realnum_value(object *obj);
 
 object *make_complexnum(double real, double imag);
-char is_complexnum_object(object *obj);
+_static_inline_ char 
+is_complexnum_object(object *obj) {return obj->type == COMPLEXNUM;}
 double get_complexnum_real_value(object *obj);
 double get_complexnum_imag_value(object *obj);
 
@@ -154,57 +161,70 @@ object *mul_realnum_value(object *obj, object *factor);
 object *mul_complexnum_value(object *obj, object *factor);
 
 object *make_character(int c);
-char is_character_object(object *obj);
+_static_inline_ char 
+is_character_object(object *obj) {return obj->type == CHARACTER;}
 int get_character_value(object *obj);
 
 object *make_string(char *str);
-char is_string_object(object *obj);
+_static_inline_ char is_string_object(object *obj) {return obj->type == STRING;}
 char *get_string_value(object *obj);
 
-char is_boolean_object(object *obj);
-char is_false(object *obj);
-char is_true(object *obj);
+_static_inline_ char 
+is_boolean_object(object *obj) {return obj->type == BOOLEAN;}
+_static_inline_ char 
+is_false(object *obj) {return obj->data.boolean.value == 0;}
+_static_inline_ char is_true(object *obj) {return ( ! is_false(obj));}
 
 object *make_symbol(char *str);
-char is_symbol_object(object *obj);
-char *get_symbol_value(object *obj);
-
-char is_the_empty_list(object *obj);
+_static_inline_ char is_symbol_object(object *obj) {return obj->type == SYMBOL;}
+_static_inline_ char 
+*get_symbol_value(object *obj) {return obj->data.symbol.value;}
+_static_inline_ size_t 
+get_symbol_size(object *obj) {return obj->data.symbol.size;}
+_static_inline_ char 
+is_the_empty_list(object *obj) {return obj->type == THE_EMPTY_LIST;}
 
 object *make_vector(size_t size);
-char is_vector_object(object *obj);
+_static_inline_ char is_vector_object(object *obj) {return obj->type == VECTOR;}
 object *get_vector_item(object *vector, size_t pos);
 object *set_vector_item(object *vector, size_t pos, object *obj);
 object *vector_length(object *vector);
 
 object *make_pair(object *a, object *b);
-char is_pair_object(object *obj);
+_static_inline_ char 
+is_pair_object(object *obj) {return obj->type == PAIR;}
 
 object *make_error(const char *fmt, ...);
-char is_error_object(object *obj);
+_static_inline_ char 
+is_error_object(object *obj) {return obj->type == ERROR;}
 char *get_error_message(object *obj);
 
 object *make_primitive_proc(primitive_proc_t fn);
-char is_primitive_proc_object(object *obj);
+_static_inline_ char 
+is_primitive_proc_object(object *obj) {return obj->type == PRIMITIVE_PROC;}
 primitive_proc_t get_primitive_proc_value(object *obj);
 
 object *make_eof(FILE *which);
-char is_eof_object(object *obj);
+_static_inline_ char 
+is_eof_object(object *obj) {return obj->type == END_OF_FILE;}
 FILE *get_eof_stream(object *obj);
 
 object *make_input_port(FILE *in);
-char is_input_port_object(object *obj);
+_static_inline_ char 
+is_input_port_object(object *obj) {return obj->type == INPUT_PORT;}
 FILE *get_input_port_stream(object *obj);
 void close_input_port(object *obj);
 
 object *make_output_port(FILE *out);
-char is_output_port_object(object *obj);
+_static_inline_ char 
+is_output_port_object(object *obj) {return obj->type == OUTPUT_PORT;}
 FILE *get_output_port_stream(object *obj);
 void close_output_port(object *obj);
 
 object *make_socket(void);
 object *make_socket_from_fd(int fd);
-char is_socket_object(object *obj);
+_static_inline_ char 
+is_socket_object(object *obj) {return obj->type == SOCKET;}
 int get_socket_fd(object *obj);
 void close_socket(object *obj);
 
@@ -213,10 +233,12 @@ object *make_begin(object *obj);
 object *make_assignment(object *var, object *value);
 
 object *make_compound_proc(object *parameters, object *body, object *env);
-char is_compound_proc_object(object *obj);
+_static_inline_ char 
+is_compound_proc_object(object *obj) {return obj->type == COMPOUND_PROC;}
 
 object *make_re_pattern(const char *pattern_string);
-char is_re_pattern_object(object *obj);
+_static_inline_ char 
+is_re_pattern_object(object *obj) {return obj->type == RE_PATTERN;}
 const char *get_re_pattern_string(object *obj);
 pcre *get_re_pattern_value(object *obj);
 

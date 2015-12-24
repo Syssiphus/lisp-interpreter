@@ -69,7 +69,7 @@ void _parser_state(parser_t *p, const char *f, unsigned int l,
 /**
  * Reads a stream and creates an object.
  */
-object *read(FILE *in)
+object *scheme_read(FILE *in)
 {
     unsigned long i;
     parser_t p;
@@ -106,12 +106,15 @@ object *read(FILE *in)
 object *return_error(parser_t *p)
 {
     int c = getc(p->stream);
-    if (fpurge(p->stream) == -1)
+    int t;
+    while (1)
     {
-        /* Purge error */
-        fprintf(stderr, "Error during purge: %s\n", strerror(errno));
-        exit(1);
-    }
+        t = getc(p->stream);
+        if (t == '\n' || t == EOF)
+        {
+            break;
+        }
+    } 
     return make_error("Parse error at '%c' (%d)", c, c);
 }
 
@@ -125,7 +128,7 @@ int peek(FILE *in)
 int get_char(parser_t *p)
 {
     int c = getc(p->stream);
-    p->buffer[p->buffer_pos++] = c; /* TODO: memory management */
+    p->buffer[p->buffer_pos++] = c; /* TODO: memory management for the buffer */
     return c;
 }
 
@@ -490,7 +493,7 @@ object *read_pair(parser_t *p)
         return the_empty_list;
     }
 
-    car_obj = read(p->stream);
+    car_obj = scheme_read(p->stream);
     if (car_obj == NULL || is_error_object(car_obj))
     {
         return car_obj;
@@ -505,7 +508,7 @@ object *read_pair(parser_t *p)
         {
             return NULL;
         }
-        cdr_obj = read(p->stream);
+        cdr_obj = scheme_read(p->stream);
         if (cdr_obj == NULL || is_error_object(cdr_obj))
         {
             return cdr_obj;
@@ -531,7 +534,7 @@ object *parse_quote(parser_t *p)
 {
     if (char_of(p, '\''))
     {
-        return cons(quote_symbol, cons(read(p->stream), the_empty_list));
+        return cons(quote_symbol, cons(scheme_read(p->stream), the_empty_list));
     }
     return NULL;
 }
@@ -541,7 +544,7 @@ void _parser_state(parser_t *p, const char *f, unsigned int l,
 {
     fprintf(stderr, "%s, %d, %s() - "
             "parser state (\"%s\", %ld), next char ('%c')\n", f, l, func, 
-            p->buffer, p->buffer_pos, peek(p->stream));
+            p->buffer, (unsigned long)p->buffer_pos, peek(p->stream));
 }
 
 

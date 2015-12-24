@@ -5,5 +5,5 @@
 
 #include "object.h"
 
-void write(FILE *out, object *obj);
+void scheme_write(FILE *out, object *obj);
 

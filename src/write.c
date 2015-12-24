@@ -5,14 +5,15 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "write.h"
 #include "builtins.h"
 
-void write(FILE *out, object *obj);
+void scheme_write(FILE *out, object *obj);
 void write_pair(FILE *out, object *obj);
 
-void write(FILE *out, object *obj)
+void scheme_write(FILE *out, object *obj)
 {
     if (is_fixnum_object(obj))
     {
@@ -68,7 +69,7 @@ void write(FILE *out, object *obj)
         fprintf(out, "#(");
         for (i = 0; i < length; ++i)
         {
-            write(out, get_vector_item(obj, i));
+            scheme_write(out, get_vector_item(obj, i));
             if (i < length - 1)
             {
                 fprintf(out, " ");
@@ -168,7 +169,7 @@ void write_pair(FILE *out, object *obj)
     object *car_obj = car(obj);
     object *cdr_obj = cdr(obj);
 
-    write(out, car_obj);
+    scheme_write(out, car_obj);
 
     if (is_pair_object(cdr_obj))
     {
@@ -178,7 +179,7 @@ void write_pair(FILE *out, object *obj)
     else if (! is_the_empty_list(cdr_obj))
     {
         fprintf(out, " . ");
-        write(out, cdr_obj);
+        scheme_write(out, cdr_obj);
     }
 }
 

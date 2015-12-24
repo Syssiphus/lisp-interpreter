@@ -22,3 +22,6 @@ src/.#*
 
 tests/error.txt
 tests/result.txt
+
+gmon.out
+

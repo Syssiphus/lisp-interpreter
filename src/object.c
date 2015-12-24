@@ -25,11 +25,6 @@ object *make_fixnum(long num)
     return obj;
 }
 
-char is_fixnum_object(object *obj)
-{
-    return obj->type == FIXNUM;
-}
-
 long get_fixnum_value(object *obj)
 {
     if (obj->type != FIXNUM)
@@ -52,11 +47,6 @@ object *make_realnum(double num)
     return obj;
 }
 
-char is_realnum_object(object *obj)
-{
-    return obj->type == REALNUM;
-}
-    
 double get_realnum_value(object *obj)
 {
     return obj->data.realnum.value;
@@ -238,11 +228,6 @@ object *make_complexnum(double real, double imag)
     return obj;
 }
 
-char is_complexnum_object(object *obj)
-{
-    return obj->type == COMPLEXNUM;
-}
-
 double get_complexnum_real_value(object *obj)
 {
     return obj->data.complexnum.real;
@@ -262,11 +247,6 @@ object *make_character(int c)
     obj->type = CHARACTER;
     obj->data.character.value = c;
     return obj;
-}
-
-char is_character_object(object *obj)
-{
-    return obj->type == CHARACTER;
 }
 
 int get_character_value(object *obj)
@@ -298,36 +278,9 @@ object *make_string(char *str)
     return obj;
 }
 
-char is_string_object(object *obj)
-{
-    return obj->type == STRING;
-}
-
 char *get_string_value(object *obj)
 {
     return obj->data.string.value;
-}
-
-/* Booleans */
-char is_boolean_object(object *obj)
-{
-    return obj->type == BOOLEAN;
-}
-
-char is_false(object *obj)
-{
-    if ( ! is_boolean_object(obj))
-    {
-        fprintf(stderr, "Not a boolean value.\n");
-        DEBUG_BREAK;
-    }
-
-    return obj->data.boolean.value == 0;
-}
-
-char is_true(object *obj)
-{
-    return ( ! is_false(obj));
 }
 
 /* Symbols */
@@ -356,30 +309,12 @@ object *make_symbol(char *str)
         DEBUG_BREAK;
     }
     strcpy(obj->data.symbol.value, str);
+    obj->data.symbol.size = strlen(obj->data.symbol.value);
+
+    /* TODO: check if this is needed here or in init.c */
     symbol_table = cons(obj, symbol_table);
+    /* ---- */
     return obj;
-}
-
-char is_symbol_object(object *obj)
-{
-    return obj->type == SYMBOL;
-}
-
-char *get_symbol_value(object *obj)
-{
-    if ( ! is_symbol_object(obj))
-    {
-        fprintf(stderr, "Not a symbol object.\n");
-        DEBUG_BREAK;
-    }
-
-    return obj->data.symbol.value;
-}
-
-/* The empty list '() */
-char is_the_empty_list(object *obj)
-{
-    return obj->type == THE_EMPTY_LIST;
 }
 
 /** VECTORS */
@@ -395,11 +330,6 @@ object *make_vector(size_t size)
     }
     obj->data.vector.length = size;
     return obj;
-}
-
-char is_vector_object(object *obj)
-{
-    return obj->type == VECTOR;
 }
 
 object *get_vector_item(object *vector, size_t pos)
@@ -438,11 +368,6 @@ object *make_pair(object *a, object *b)
     return obj;
 }
 
-char is_pair_object(object *obj)
-{
-    return obj->type == PAIR;
-}
-
 /* Errors */
 object *make_error(const char *fmt, ...)
 {
@@ -467,11 +392,6 @@ object *make_error(const char *fmt, ...)
     return obj;
 }
 
-char is_error_object(object *obj)
-{
-    return obj->type == ERROR;
-}
-
 char *get_error_message(object *obj)
 {
     return obj->data.error.message;
@@ -486,11 +406,6 @@ object *make_primitive_proc(primitive_proc_t fn)
     return obj;
 }
 
-char is_primitive_proc_object(object *obj)
-{
-    return obj->type == PRIMITIVE_PROC;
-}
-
 primitive_proc_t get_primitive_proc_value(object *obj)
 {
     return obj->data.primitive_proc.fn;
@@ -502,11 +417,6 @@ object *make_eof(FILE *which)
     obj->type = END_OF_FILE;
     obj->data.end_of_file.stream = which;
     return obj;
-}
-
-char is_eof_object(object *obj)
-{
-    return obj->type == END_OF_FILE;
 }
 
 FILE *get_eof_stream(object *obj)
@@ -527,11 +437,6 @@ object *make_input_port(FILE *in)
     obj->type = INPUT_PORT;
     obj->data.input_port.stream = in;
     return obj;
-}
-
-char is_input_port_object(object *obj)
-{
-    return obj->type == INPUT_PORT;
 }
 
 FILE *get_input_port_stream(object *obj)
@@ -561,11 +466,6 @@ object *make_output_port(FILE *out)
     obj->type = OUTPUT_PORT;
     obj->data.output_port.stream = out;
     return obj;
-}
-
-char is_output_port_object(object *obj)
-{
-    return obj->type == OUTPUT_PORT;
 }
 
 FILE *get_output_port_stream(object *obj)
@@ -600,8 +500,14 @@ object *make_socket(void)
         return make_error("Error creating the socket: %s",
                           strerror(errno));
     }
-    obj->data.socket.stream = NULL;
-    
+    /* Set the address re-use */
+    if (setsockopt(obj->data.socket.fd, SOL_SOCKET, SO_REUSEADDR, 
+                   &(int){ 1 }, sizeof(int)) < 0)
+    {
+        return make_error("Error setting the socket options: %s",
+                          strerror(errno));
+    }
+ 
     return obj;
 }
 
@@ -612,14 +518,8 @@ object *make_socket_from_fd(int fd)
     obj = alloc_with_finalizer(close_socket_on_collect);
     obj->type = SOCKET;
     obj->data.socket.fd = fd;
-    obj->data.socket.stream = NULL;
     
     return obj;
-}
-
-char is_socket_object(object *obj)
-{
-    return obj->type == SOCKET;
 }
 
 int get_socket_fd(object *obj)
@@ -666,11 +566,6 @@ object *make_compound_proc(object *parameters, object *body, object *env)
     return obj;
 }
 
-char is_compound_proc_object(object *obj)
-{
-    return obj->type == COMPOUND_PROC;
-}
-
 void clean_up_re_pattern(void *obj, void *arg)
 {
     object * realobj = (object *)obj;
@@ -701,11 +596,6 @@ object *make_re_pattern(const char *pattern_string)
     }
     
     return obj;
-}
-
-char is_re_pattern_object(object *obj)
-{
-    return obj->type == RE_PATTERN;
 }
 
 const char * get_re_pattern_string(object *obj)

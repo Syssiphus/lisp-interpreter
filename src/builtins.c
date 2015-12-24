@@ -1,13 +1,20 @@
 
+#define _DEFAULT_SOURCE
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <errno.h>
 #include <math.h>
 #include <pcre.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <sys/select.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 
 #include <dlfcn.h>
 /* Does this work? stdbool.h is included through dlfcn.h and defines true/false
@@ -21,7 +28,8 @@
 #include "read.h"
 #include "eval.h"
 
-void write(FILE *out, object *obj);
+void scheme_write(FILE *out, object *obj);
+object *find_variable(object *symbol, object *env);
 
 long _number_of_args(object *arguments)
 {
@@ -37,7 +45,7 @@ long _number_of_args(object *arguments)
 }
 
 /* This shall never be called. It is being handled in eval() */
-object *apply_fake_proc(object *arguments)
+object *apply_fake_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
     return make_error("Primitive function 'apply' should not "
@@ -45,92 +53,64 @@ object *apply_fake_proc(object *arguments)
 }
 
 /* This shall never be called. It is being handled in eval() */
-object *eval_fake_proc(object *arguments)
+object *eval_fake_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
     return make_error("Primitive function 'eval' should not "
                       "be called natively.");
 }
 
-object *cons(object *a, object *b)
-{
-    return make_pair(a, b);
-}
-
-object *car(object *obj)
-{
-    if (is_pair_object(obj))
-    {
-        return obj->data.pair.car;
-    }
-    return make_error("Not a pair object.");
-}
-
-object *cdr(object *obj)
-{
-    if (is_pair_object(obj))
-    {
-        return obj->data.pair.cdr;
-    }
-    return make_error("Not a pair object.");
-}
-
-void set_car(object *dst, object *obj)
-{
-    dst->data.pair.car = obj;
-}
-
-void set_cdr(object *dst, object *obj)
-{
-    dst->data.pair.cdr = obj;
-}
-
-object *cons_proc(object *arguments)
+object *cons_proc(object *arguments, object *env)
 {
     object *car_obj = car(arguments);
     object *cdr_obj = cadr(arguments);
     return cons(car_obj, cdr_obj);
 }
 
-object *car_proc(object *arguments)
+object *car_proc(object *arguments, object *env)
 {
     return car(car(arguments));
 }
 
-object *cdr_proc(object *arguments)
+object *cdr_proc(object *arguments, object *env)
 {
     return cdr(car(arguments));
 }
 
-object *set_car_proc(object *arguments)
+object *set_car_proc(object *arguments, object *env)
 {
     set_car(car(arguments), cadr(arguments));
     return ok_symbol;
 }
 
-object *set_cdr_proc(object *arguments)
+object *set_cdr_proc(object *arguments, object *env)
 {
     set_cdr(car(arguments), cadr(arguments));
     return ok_symbol;
 }
 
-object *is_pair_proc(object *arguments)
+object *is_pair_proc(object *arguments, object *env)
 {
     return is_pair_object(car(arguments)) ? true : false;
 }
 
-object *is_boolean_proc(object *arguments)
+object *is_boolean_proc(object *arguments, object *env)
 {
     return is_boolean_object(car(arguments)) ? true : false;
 }
 
-object *length_proc(object *arguments)
+object *length_proc(object *arguments, object *env)
 {
     long result = 0;
 
     if (_number_of_args(arguments) != 1)
     {
         return make_error("'length' takes exactly 1 argument (PAIR).");
+    }
+
+    if ( is_the_empty_list(car(arguments)))
+    {
+        return 0;
     }
 
     if ( ! is_pair_object(car(arguments)))
@@ -148,7 +128,7 @@ object *length_proc(object *arguments)
     return make_fixnum(result);
 }
 
-object *add_proc(object *arguments)
+object *add_proc(object *arguments, object *env)
 {
     object *result = make_fixnum(0);
 
@@ -178,7 +158,7 @@ object *add_proc(object *arguments)
     return result;
 }
 
-object *sub_proc(object *arguments)
+object *sub_proc(object *arguments, object *env)
 {
     char need_realnum = 0;
     char first_value = 1;
@@ -221,7 +201,7 @@ object *sub_proc(object *arguments)
     return need_realnum ? make_realnum(result) : make_fixnum(result);
 }
 
-object *mul_proc(object *arguments)
+object *mul_proc(object *arguments, object *env)
 {
     object *result = make_fixnum(1);
 
@@ -252,7 +232,7 @@ object *mul_proc(object *arguments)
     return result;
 }
 
-object *quotient_proc(object *arguments)
+object *quotient_proc(object *arguments, object *env)
 {
     char need_realnum = 0;
     double result, value1, value2;
@@ -282,7 +262,7 @@ object *quotient_proc(object *arguments)
     return need_realnum ? make_realnum(result) : make_fixnum(result);
 }
 
-object *remainder_proc(object *arguments)
+object *remainder_proc(object *arguments, object *env)
 {
     char need_realnum = 0;
     double result, value1, value2;
@@ -312,7 +292,7 @@ object *remainder_proc(object *arguments)
     return need_realnum ? make_realnum(result) : make_fixnum(result);
 }
 
-object *modulo_proc(object *arguments)
+object *modulo_proc(object *arguments, object *env)
 {
     long result, value1, value2;
     if (_number_of_args(arguments) != 2)
@@ -331,7 +311,7 @@ object *modulo_proc(object *arguments)
     return make_fixnum(result);
 }
 
-object *floor_proc(object *arguments)
+object *floor_proc(object *arguments, object *env)
 {
     if (is_fixnum_object(car(arguments)))
     {
@@ -343,7 +323,7 @@ object *floor_proc(object *arguments)
     }
 }
 
-object *make_rectangular_proc(object *arguments)
+object *make_rectangular_proc(object *arguments, object *env)
 {
     double real, imag;
 
@@ -362,7 +342,7 @@ object *make_rectangular_proc(object *arguments)
     return make_complexnum(real, imag);
 }
 
-object *magnitude_proc(object *arguments)
+object *magnitude_proc(object *arguments, object *env)
 {
     double real, imag;
     if (_number_of_args(arguments) != 1)
@@ -386,25 +366,25 @@ object *magnitude_proc(object *arguments)
     }
 }
 
-object *mem_usage_proc(object *obj)
+object *mem_usage_proc(object *obj, object *env)
 {
     return make_fixnum(memory_usage());
 }
 
-object *is_number_proc(object *arguments)
+object *is_number_proc(object *arguments, object *env)
 {
     if ( ! is_the_empty_list(cdr(arguments)))
     {
         return make_error("Too many arguments to 'number?'.");
     }
 
-    return is_true(is_real_proc(arguments))
-        || is_true(is_integer_proc(arguments))
-        || is_true(is_complex_proc(arguments))
+    return is_true(is_real_proc(arguments, env))
+        || is_true(is_integer_proc(arguments, env))
+        || is_true(is_complex_proc(arguments, env))
         ? true : false;
 }
 
-object *is_complex_proc(object *arguments)
+object *is_complex_proc(object *arguments, object *env)
 {
     if (_number_of_args(arguments) != 1)
     {
@@ -413,7 +393,7 @@ object *is_complex_proc(object *arguments)
     return is_complexnum_object(car(arguments)) ? true : false;
 }
 
-object *is_real_proc(object *arguments)
+object *is_real_proc(object *arguments, object *env)
 {
     if ( ! is_the_empty_list(cdr(arguments)))
     {
@@ -423,13 +403,13 @@ object *is_real_proc(object *arguments)
     return is_realnum_object(car(arguments)) ? true : false;
 }
 
-object *is_rational_proc(object *arguments)
+object *is_rational_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
     return make_error("'rational?' not implemented yet.");
 }
 
-object *is_integer_proc(object *arguments)
+object *is_integer_proc(object *arguments, object *env)
 {
     if ( ! is_the_empty_list(cdr(arguments)))
     {
@@ -439,7 +419,7 @@ object *is_integer_proc(object *arguments)
     return is_fixnum_object(car(arguments)) ? true : false;
 }
 
-object *is_eqv_proc(object *arguments)
+object *is_eqv_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -452,21 +432,21 @@ object *is_eqv_proc(object *arguments)
     switch (obj1->type)
     {
         case SYMBOL:
-            return is_symbol_equal_proc(arguments);
+            return is_symbol_equal_proc(arguments, env);
         case STRING:
-            return is_string_equal_proc(arguments);
+            return is_string_equal_proc(arguments, env);
         case CHARACTER:
-            return is_character_equal_proc(arguments);
+            return is_character_equal_proc(arguments, env);
         case FIXNUM:
         case REALNUM:
         case COMPLEXNUM:
-            return is_number_equal_proc(arguments);
+            return is_number_equal_proc(arguments, env);
         default:
             return (obj1 == obj2) ? true : false;
     }
 }
 
-object *is_eq_proc(object *arguments)
+object *is_eq_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -485,17 +465,17 @@ object *is_eq_proc(object *arguments)
             return get_string_value(obj1) == get_string_value(obj2)
                 ? true : false;
         case CHARACTER:
-            return is_character_equal_proc(arguments);
+            return is_character_equal_proc(arguments, env);
         case FIXNUM:
         case REALNUM:
         case COMPLEXNUM:
-            return is_number_equal_proc(arguments);
+            return is_number_equal_proc(arguments, env);
         default:
             return (obj1 == obj2) ? true : false;
     }
 }
 
-object *is_symbol_proc(object *arguments)
+object *is_symbol_proc(object *arguments, object *env)
 {
     if (_number_of_args(arguments) != 1)
     {
@@ -506,7 +486,7 @@ object *is_symbol_proc(object *arguments)
     return is_symbol_object(car(arguments)) ? true : false;
 }
 
-object *is_symbol_equal_proc(object *arguments)
+object *is_symbol_equal_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -518,7 +498,7 @@ object *is_symbol_equal_proc(object *arguments)
     return (obj1 == obj2) ? true : false;
 }
 
-object *is_string_equal_proc(object *arguments)
+object *is_string_equal_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -533,7 +513,7 @@ object *is_string_equal_proc(object *arguments)
         : false;
 }
 
-object *is_character_equal_proc(object *arguments)
+object *is_character_equal_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -548,7 +528,7 @@ object *is_character_equal_proc(object *arguments)
         : false;
 }
 
-object *is_number_equal_proc(object *arguments)
+object *is_number_equal_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -582,7 +562,7 @@ object *is_number_equal_proc(object *arguments)
     return (value1 == value2) ? true : false;
 }
 
-object *is_number_lt_proc(object *arguments)
+object *is_number_lt_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -616,7 +596,7 @@ object *is_number_lt_proc(object *arguments)
     return (value1 < value2) ? true : false;
 }
 
-object *is_number_gt_proc(object *arguments)
+object *is_number_gt_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -650,7 +630,7 @@ object *is_number_gt_proc(object *arguments)
     return (value1 > value2) ? true : false;
 }
 
-object *is_number_lteq_proc(object *arguments)
+object *is_number_lteq_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -684,7 +664,7 @@ object *is_number_lteq_proc(object *arguments)
     return (value1 <= value2) ? true : false;
 }
 
-object *is_number_gteq_proc(object *arguments)
+object *is_number_gteq_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
@@ -718,7 +698,7 @@ object *is_number_gteq_proc(object *arguments)
     return (value1 >= value2) ? true : false;
 }
 
-object *load_proc(object *arguments)
+object *load_proc(object *arguments, object *env)
 {
     char *filename;
     FILE *in;
@@ -745,7 +725,7 @@ object *load_proc(object *arguments)
 
     while (1)
     {
-        exp = read(in);
+        exp = scheme_read(in);
         if (is_eof_object(exp))
         {
             break;
@@ -761,7 +741,7 @@ object *load_proc(object *arguments)
     return result;
 }
 
-object *open_input_file_proc(object *arguments)
+object *open_input_file_proc(object *arguments, object *env)
 {
     FILE * input_file;
     const char * filename = get_string_value(car(arguments));
@@ -776,7 +756,7 @@ object *open_input_file_proc(object *arguments)
     return make_input_port(input_file);
 }
 
-object *open_output_file_proc(object *arguments)
+object *open_output_file_proc(object *arguments, object *env)
 {
     FILE * output_file;
     const char * filename = get_string_value(car(arguments));
@@ -791,17 +771,17 @@ object *open_output_file_proc(object *arguments)
     return make_output_port(output_file);
 }
 
-object *is_input_port_proc(object *arguments)
+object *is_input_port_proc(object *arguments, object *env)
 {
     return is_input_port_object(car(arguments)) ? true : false;
 }
 
-object *is_output_port_proc(object *arguments)
+object *is_output_port_proc(object *arguments, object *env)
 {
     return is_output_port_object(car(arguments)) ? true : false;
 }
 
-object *is_string_proc(object *arguments)
+object *is_string_proc(object *arguments, object *env)
 {
     if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
     {
@@ -810,7 +790,7 @@ object *is_string_proc(object *arguments)
     return is_string_object(car(arguments)) ? true : false;
 }
 
-object *make_string_proc(object *arguments)
+object *make_string_proc(object *arguments, object *env)
 {
     long length = 0;
     char initializer = ' ';
@@ -848,7 +828,7 @@ object *make_string_proc(object *arguments)
     return obj;
 }
 
-object *string_length_proc(object *arguments)
+object *string_length_proc(object *arguments, object *env)
 {
     if (is_the_empty_list(arguments))
     {
@@ -862,7 +842,7 @@ object *string_length_proc(object *arguments)
     return make_fixnum(strlen(get_string_value(car(arguments))));
 }
 
-object *string_ref_proc(object *arguments)
+object *string_ref_proc(object *arguments, object *env)
 {
     long length, index;
     const char * str;
@@ -893,7 +873,7 @@ object *string_ref_proc(object *arguments)
     return make_character(str[index]);
 }
 
-object *string_set_proc(object *arguments)
+object *string_set_proc(object *arguments, object *env)
 {
     long length, index;
     char * str;
@@ -933,7 +913,7 @@ object *string_set_proc(object *arguments)
     return ok_symbol;
 }
 
-object *is_char_proc(object *arguments)
+object *is_char_proc(object *arguments, object *env)
 {
     if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
     {
@@ -942,7 +922,7 @@ object *is_char_proc(object *arguments)
     return is_character_object(car(arguments)) ? true : false;
 }
 
-object *number_to_string_proc(object *arguments)
+object *number_to_string_proc(object *arguments, object *env)
 {
     char buffer[1024];
 
@@ -975,7 +955,77 @@ object *number_to_string_proc(object *arguments)
     return make_string(buffer);
 }
 
-object *char_to_int_proc(object *arguments)
+object *list_to_string_proc(object *arguments, object *env)
+{
+    char *str = "";
+    long list_length;
+    object *list;
+
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'list->string' takes exactly 1 argument.");
+    }
+    
+    if ( ! is_pair_object(car(arguments))
+         && ! is_the_empty_list(car(arguments)))
+    {
+        return make_error("'list->string' expects PAIR as first argument.");
+    }
+    
+    list = car(arguments);
+    list_length = get_fixnum_value(length_proc(arguments, env));
+
+    if (list_length > 0)
+    {
+        long i = 0;
+        str = GC_malloc(list_length + 1);
+        memset(str, 0, list_length + 1);
+
+        while ( ! is_the_empty_list(list))
+        {
+            object *c = car(list);
+            if ( ! is_character_object(c))
+            {
+                return make_error("'list->string' supplied PAIR object "
+                                  "contains non-CHARACTER objects.");
+            }
+            str[i] = get_character_value(c);
+            list = cdr(list);
+            ++i;
+        }
+    }
+    
+    return make_string(str);
+}
+
+object *string_to_list_proc(object *arguments, object *env)
+{
+    UNUSED(env);
+    object *obj = the_empty_list;
+    char * str;
+    int i;
+    
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'string->list' takes exactly 1 argument.");
+    }
+    
+    if ( ! is_string_object(car(arguments)))
+    {
+        return make_error("'string->list' expects STRING as first argument.");
+    }
+    
+    str = get_string_value(car(arguments));
+
+    for (i = strlen(str) - 1; i >= 0; --i)
+    {
+        obj = cons(make_character(str[i]), obj);
+    }
+
+    return obj;
+}
+
+object *char_to_int_proc(object *arguments, object *env)
 {
     char c;
     if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
@@ -990,7 +1040,7 @@ object *char_to_int_proc(object *arguments)
     return make_fixnum(c);
 }
 
-object *int_to_char_proc(object *arguments)
+object *int_to_char_proc(object *arguments, object *env)
 {
     int c;
     if (is_the_empty_list(arguments) || ! is_the_empty_list(cdr(arguments)))
@@ -1005,11 +1055,11 @@ object *int_to_char_proc(object *arguments)
     return make_character(c);
 }
 
-object *error_proc(object *arguments)
+object *error_proc(object *arguments, object *env)
 {
     while ( ! is_the_empty_list(arguments))
     {
-        write(stderr, car(arguments));
+        scheme_write(stderr, car(arguments));
         fprintf(stderr, " ");
         arguments = cdr(arguments);
     }
@@ -1018,13 +1068,13 @@ object *error_proc(object *arguments)
     exit(1);
 }
 
-object *quit_proc(object *arguments)
+object *quit_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
     exit(0);
 }
 
-object *exit_proc(object *arguments)
+object *exit_proc(object *arguments, object *env)
 {
     exit(get_fixnum_value(car(arguments)));
 }
@@ -1115,13 +1165,13 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
     }
 }
 
-object *pretty_print_structure_proc(object *arguments)
+object *pretty_print_structure_proc(object *arguments, object *env)
 {
     _pretty_print(car(arguments), "", 0);
     return ok_symbol;
 }
 
-object *load_dynlib_proc(object *arguments)
+object *load_dynlib_proc(object *arguments, object *env)
 {
     long argnr = _number_of_args(arguments);
     object *filename;
@@ -1140,6 +1190,8 @@ object *load_dynlib_proc(object *arguments)
     {
         verbose = cadr(arguments);
     }
+    
+    UNUSED(verbose);
     
     handle = dlopen(get_string_value(filename), RTLD_NOW);
     if ( ! handle)
@@ -1162,7 +1214,7 @@ object *load_dynlib_proc(object *arguments)
     return init_fn();
 }
 
-object *re_pattern_proc(object *arguments)
+object *re_pattern_proc(object *arguments, object *env)
 {
     object *arg = car(arguments);
 
@@ -1179,12 +1231,12 @@ object *re_pattern_proc(object *arguments)
     return make_re_pattern(get_string_value(arg));
 }
 
-object *call_re_pattern_proc(char *pattern)
+object *call_re_pattern_proc(char *pattern, object *env)
 {
-    return re_pattern_proc(cons(make_string(pattern), the_empty_list));
+    return re_pattern_proc(cons(make_string(pattern), the_empty_list), env);
 }
 
-object *re_match_proc(object *arguments)
+object *re_match_proc(object *arguments, object *env)
 {
 #define OVECCOUNT 30
     object *result = the_empty_list;
@@ -1213,7 +1265,7 @@ object *re_match_proc(object *arguments)
     if (is_string_object(car(arguments)))
     {
         char *pattern = get_string_value(car(arguments));
-        re_pattern = call_re_pattern_proc(pattern);
+        re_pattern = call_re_pattern_proc(pattern, env);
     }
     else
     {
@@ -1265,7 +1317,7 @@ object *re_match_proc(object *arguments)
     return result;
 }
 
-object *is_vector_proc(object *arguments)
+object *is_vector_proc(object *arguments, object *env)
 {
     if (_number_of_args(arguments) != 1)
     {
@@ -1275,7 +1327,7 @@ object *is_vector_proc(object *arguments)
     return is_vector_object(car(arguments)) ? true : false;
 }
 
-object *make_vector_proc(object *arguments)
+object *make_vector_proc(object *arguments, object *env)
 {
     long arity = _number_of_args(arguments);
     long size;
@@ -1308,7 +1360,7 @@ object *make_vector_proc(object *arguments)
     return vector;
 }
 
-object *vector_length_proc(object *arguments)
+object *vector_length_proc(object *arguments, object *env)
 {
     long arity = _number_of_args(arguments);
 
@@ -1320,7 +1372,7 @@ object *vector_length_proc(object *arguments)
     return vector_length(car(arguments));
 }
 
-object *vector_ref_proc(object *arguments)
+object *vector_ref_proc(object *arguments, object *env)
 {
     long arity = _number_of_args(arguments);
 
@@ -1332,7 +1384,7 @@ object *vector_ref_proc(object *arguments)
     return get_vector_item(car(arguments), get_fixnum_value(cadr(arguments)));
 }
 
-object *vector_set_proc(object *arguments)
+object *vector_set_proc(object *arguments, object *env)
 {
     long arity = _number_of_args(arguments);
 
@@ -1345,7 +1397,7 @@ object *vector_set_proc(object *arguments)
                            caddr(arguments));
 }
 
-object *make_socket_proc(object *arguments)
+object *make_socket_proc(object *arguments, object *env)
 {
     if (_number_of_args(arguments) != 0)
     {
@@ -1355,7 +1407,7 @@ object *make_socket_proc(object *arguments)
     return make_socket();
 }
 
-object *socket_bind_proc(object *arguments)
+object *socket_bind_proc(object *arguments, object *env)
 {
     object *socket, *port;
     struct sockaddr_in serv_addr;
@@ -1397,7 +1449,7 @@ object *socket_bind_proc(object *arguments)
     return ok_symbol;
 }
 
-object *socket_listen_proc(object *arguments)
+object *socket_listen_proc(object *arguments, object *env)
 {
     object *socket, *backlog;
 
@@ -1430,7 +1482,7 @@ object *socket_listen_proc(object *arguments)
     return ok_symbol;
 }
 
-object *socket_accept_proc(object *arguments)
+object *socket_accept_proc(object *arguments, object *env)
 {
     object *socket;
     socklen_t clilen;
@@ -1465,7 +1517,7 @@ object *socket_accept_proc(object *arguments)
     return make_socket_from_fd(newsockfd);
 }
 
-object *close_socket_proc(object *arguments)
+object *close_socket_proc(object *arguments, object *env)
 {
     object *socket;
 
@@ -1485,7 +1537,7 @@ object *close_socket_proc(object *arguments)
     return ok_symbol;
 }
 
-object *is_socket_proc(object *arguments)
+object *is_socket_proc(object *arguments, object *env)
 {
     object *socket;
 
@@ -1499,5 +1551,294 @@ object *is_socket_proc(object *arguments)
     return is_socket_object(socket) ? true : false;
 }
 
+object *select_proc(object *arguments, object *env)
+{
+    object *rd_list, *wr_list, *err_list;
+    fd_set rd_set, wr_set, err_set;
+    long timeout;
+    struct timeval timeout_s;
+    int max_fds = 0;
+    object *rd_results = the_empty_list;
+    object *wr_results = the_empty_list;
+    object *err_results = the_empty_list;
+    object *results = the_empty_list;
+    
+    /* Check for proper number and types of arguments */
+    if (_number_of_args(arguments) != 4)
+    {
+        return make_error("'select' takes exactly 4 arguments.");
+    }
+    
+    if ( ! is_pair_object(car(arguments))
+         && ! is_the_empty_list(car(arguments)))
+    {
+        return make_error("'select' expects a PAIR as first argument.");
+    }
+    
+    if ( ! is_pair_object(cadr(arguments))
+         && ! is_the_empty_list(cadr(arguments)))
+    {
+        return make_error("'select' expects a PAIR as second argument.");
+    }
 
+    if ( ! is_pair_object(caddr(arguments))
+         && ! is_the_empty_list(caddr(arguments)))
+    {
+        return make_error("'select' expects a PAIR as third argument.");
+    }
 
+    if ( ! is_fixnum_object(cadddr(arguments)))
+    {
+        return make_error("'select' expects a FIXNUM as fourth argument.");
+    }
+
+    /* Clear the sets */
+    FD_ZERO(&rd_set);
+    FD_ZERO(&wr_set);
+    FD_ZERO(&err_set);
+    
+    /* Read args */
+    rd_list = car(arguments);
+    wr_list = cadr(arguments);
+    err_list = caddr(arguments);
+    timeout = get_fixnum_value(cadddr(arguments));
+    
+    timeout_s.tv_sec = 0;
+    timeout_s.tv_usec = timeout;
+    
+    /* Set the FD_SET's */
+    {
+        object *args_list[3] = {rd_list, wr_list, err_list};
+        fd_set *sets_list[3] = {&rd_set, &wr_set, &err_set};
+        unsigned long i;
+
+        for (i = 0; i < sizeof(sets_list) / sizeof(fd_set *); ++i)
+        {
+            while (args_list[i] != the_empty_list)
+            {
+                int fd;
+
+                /* Evaluate the object, it might be a symbol */
+                set_car(args_list[i], eval(car(args_list[i]), env));
+                fd = get_socket_fd(car(args_list[i]));
+                if (fd > max_fds) max_fds = fd;
+                FD_SET(fd, sets_list[i]);
+                args_list[i] = cdr(args_list[i]);
+            }
+        }
+        max_fds += 1;
+    }
+
+    if (select(max_fds, &rd_set, &wr_set, &err_set, &timeout_s) < 0)
+    {
+        return make_error("'select' error: %s", strerror(errno));
+    }
+    
+    /* Read the results */
+    {
+        object *args_list[3]      = {rd_list, wr_list, err_list};
+        object **results_list[3]  = {&rd_results, &wr_results, &err_results};
+        fd_set *sets_list[3]      = {&rd_set, &wr_set, &err_set};
+        unsigned long i;
+        int fd;
+
+        for (i = 0; i < sizeof(sets_list) / sizeof(fd_set *); ++i)
+        {
+            for (fd = 0; fd < max_fds; ++fd)
+            {
+                if (FD_ISSET(fd, sets_list[i]))
+                {
+                    /* File descriptor is set,
+                       find the proper stream in our list
+                       of the original arguments */
+                    object *list = args_list[i];
+                    while ( ! is_the_empty_list(list))
+                    {
+                        if (get_socket_fd(car(list)) == fd)
+                        {
+                            *results_list[i] = cons(car(list), 
+                                                    *results_list[i]);
+                        }
+                        list = cdr(list);
+                    }
+                }
+            }
+        }
+    }
+
+    results = cons(rd_results,
+                   cons(wr_results,
+                        cons(err_results, the_empty_list)));
+    return results;
+}
+
+object *sleep_proc(object *arguments, object *env)
+{
+    unsigned int secs;
+    UNUSED(env);
+    if (_number_of_args(arguments) != 1)
+    {
+        return make_error("'sleep' takes exactly 1 argument");
+    }
+    
+    if (is_fixnum_object(car(arguments)))
+    {
+        secs = get_fixnum_value(car(arguments)) * 1000000;
+    }
+    else if (is_realnum_object(car(arguments)))
+    {
+        secs = floor(get_realnum_value(car(arguments)) * 1000000);
+    }
+    else
+    {
+        return make_error("'sleep' expects a FIXNUM/REAL as first argument.");
+    }
+    
+    usleep(secs);
+    
+    return ok_symbol;
+}
+
+object *write_char_proc(object *arguments, object *env)
+{
+    object *character;
+    object *port = find_variable(current_output_port_symbol, env);
+    int nr_args = _number_of_args(arguments);
+
+    if (nr_args != 1 && nr_args != 2)
+    {
+        return make_error("'write-char' takes 1 or 2 arguments.");
+    }
+
+    character = eval(car(arguments), env);
+
+    if(cdr(arguments) != the_empty_list)
+    {
+        port = eval(cadr(arguments), env);
+    }
+    
+    if ( ! is_character_object(character))
+    {
+        return make_error("'write-char' expects a CHARACTER as "
+                          "first argument.");
+    }
+
+    if (is_output_port_object(port))
+    {
+        char c = get_character_value(character);
+        fwrite(&c, 1, 1, get_output_port_stream(port));
+    }
+    else if (is_socket_object(port))
+    {
+        char c = get_character_value(character);
+        write(get_socket_fd(port), &c, 1); 
+    }
+    else
+    {
+        return make_error("'write-char' expects a OUTPUT_PORT or "
+                          "STREAM as second argument.");
+    }
+
+    return ok_symbol;
+}
+
+object *read_char_proc(object *arguments, object *env)
+{
+    char c;
+    object *port = find_variable(current_input_port_symbol, env);
+    int nr_args = _number_of_args(arguments);
+
+    if (nr_args != 0 && nr_args != 1)
+    {
+        return make_error("'read-char' takes 0 or 1 arguments.");
+    }
+    
+    if ( ! is_the_empty_list(arguments))
+    {
+        port = eval(car(arguments), env);
+    }
+
+    if (is_input_port_object(port))
+    {
+        fread(&c, 1, 1, get_input_port_stream(port));
+    }
+    else if (is_socket_object(port))
+    {
+        ssize_t result = read(get_socket_fd(port), &c, 1);
+
+        if (result < 0)
+        {
+            return make_error("'read-char' error: %s", strerror(errno));
+        }
+    }
+    else
+    {
+        return make_error("'read-char' expects a INPUT_PORT or "
+                          "STREAM as first argument.");
+    }
+
+    return make_character(c);;
+}
+
+object *write_proc(object *arguments, object *env)
+{
+    object *port = find_variable(current_output_port_symbol, env);
+    int nr_args = _number_of_args(arguments);
+
+    if (nr_args != 1 && nr_args != 2)
+    {
+        return make_error("'write' takes 1 or 2 arguments.");
+    }
+
+    if(cdr(arguments) != the_empty_list)
+    {
+        port = eval(cadr(arguments), env);
+    }
+    
+    if (is_output_port_object(port))
+    {
+        scheme_write(get_output_port_stream(port), car(arguments));
+        putc('\n', get_output_port_stream(port));
+    }
+    else if (is_socket_object(port))
+    {
+        return make_error("'write' does not support SOCKET objects yet.");
+    }
+    else
+    {
+        return make_error("'write' expects a OUTPUT_PORT or "
+                          "SOCKET as second argument.");
+    }
+
+    return ok_symbol;
+}
+
+object *read_proc(object *arguments, object *env)
+{
+    object *port = find_variable(current_input_port_symbol, env);
+    int nr_args = _number_of_args(arguments);
+
+    if (nr_args != 0 && nr_args != 1)
+    {
+        return make_error("'read' takes 0 or 1 arguments.");
+    }
+    
+    if ( ! is_the_empty_list(arguments))
+    {
+        port = eval(car(arguments), env);
+    }
+
+    if (is_input_port_object(port))
+    {
+        return scheme_read(get_input_port_stream(port));
+    }
+    else if (is_socket_object(port))
+    {
+        return make_error("'read' does not support SOCKET objects yet");
+    }
+    else
+    {
+        return make_error("'read' expects a INPUT_PORT or "
+                          "SOCKET as first argument.");
+    }
+}

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <stddef.h>
+
 #include <gc.h>
 
 #include "object.h"

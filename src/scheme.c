@@ -1,5 +1,6 @@
 #include <string.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "read.h"
 #include "write.h"
@@ -20,13 +21,15 @@ int main(int argc, char** argv)
     
     /* Read in the standard lib functions */
     fprintf(stdout, "Loading 'stdlib.scm'... ");
-    write(stdout, load_file("stdlib.scm"));
+    scheme_write(stdout, load_file("stdlib.scm"));
     putc('\n', stdout);
 
     while (1)
     {
         fprintf(stdout, "> ");
-        write(stdout, eval(read(stdin), the_global_environment));
+        scheme_write(stdout, 
+                     eval(scheme_read(stdin), 
+                          the_global_environment));
         putc('\n', stdout);
     }
 

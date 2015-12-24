@@ -1,10 +1,12 @@
+#include <unistd.h>
+
 #include "globals.h"
 #include "memory.h"
 #include "object.h"
+#include "builtins.h"
 
 object *make_environment(void);
 void define_variable(object *symbol, object *value, object *env);
-object *cons(object *a, object *b);
 
 void init(int argc, char **argv)
 {
@@ -47,12 +49,10 @@ void init(int argc, char **argv)
     and_symbol       = make_symbol("and");
     or_symbol        = make_symbol("or");
 
-
     /* Input/Output */
     with_output_to_file_symbol = make_symbol("with-output-to-file");
     current_input_port_symbol  = make_symbol("current-input-port");
     current_output_port_symbol = make_symbol("current-output-port");
-    write_char_symbol          = make_symbol("write-char");
 
     /* The global environment */
     the_empty_environment = the_empty_list;

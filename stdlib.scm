@@ -183,6 +183,13 @@
         ((>= i len))
       (vector-set! vec i obj))))
 
+;; sleep
+(define (msleep x)
+  (sleep (/ x 1000)))
+
+(define (usleep x)
+  (sleep (/ x 1000000)))
+
 ;; Some additional functions
 (define (assert x y)
   (if (eqv? x y)

@@ -11,6 +11,11 @@ void *reserve_mem_pool;
 
 void init_memory_pool(void)
 {
+    fprintf(stdout, "[BDWGC Garbage Collection library V%d.%d]\n",
+            GC_VERSION_MAJOR, GC_VERSION_MINOR);
+
+    GC_set_all_interior_pointers(0);
+    GC_INIT ();
     GC_enable_incremental();
 }
 

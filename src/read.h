@@ -5,5 +5,5 @@
 
 #include "object.h"
 
-object *read(FILE *in);
+object *scheme_read(FILE *in);
 

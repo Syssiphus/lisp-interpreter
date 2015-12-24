@@ -1,4 +1,4 @@
-# Lispy makefile
+# scheme project makefile
 # author: bpaschen@googlemail.com
 # date: 2015 Nov 11
 # log:
@@ -18,6 +18,8 @@ OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 LEGACY_SOURCES = legacy_src/main.c
 LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
+UNAME_S := $(shell uname -s)
+
 ifeq ($(PROF), 1)
 PROFFLAG = -pg
 PROFLINK = -pg
@@ -26,14 +28,20 @@ PROFFLAG =
 PROFLINK =
 endif
 
-ifeq ($(DBG), 1)
-CFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -ansi -D_DEBUG
-CXXFLAGS = $(PROFFLAG) -g -O0 -Isrc -Wall -D_DEBUG
-LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre
+ifeq ($(UNAME_S), Linux)
+CFLAGS = $(PROFFLAG) -I/opt/local/include -Isrc -Wall -std=c99 
+LDFLAGS = $(PROFLINK) -L/opt/local/lib -lgc -ldl -lpcre -lm -lpthread
 else
-CFLAGS = $(PROFFLAG) -O2 -Isrc -Wall -ansi
-CXXFLAGS = $(PROFFLAG) -O2 -Isrc -Wall
-LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre
+CFLAGS = $(PROFFLAG) -Isrc -Wall -std=c99
+LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre -lm 
+endif
+
+ifeq ($(DBG), 1)
+CFLAGS += $(PROFFLAG) -g -O0 -D_DEBUG
+LDFLAGS +=
+else
+CFLAGS += $(PROFFLAG) -O2
+LDFLAGS +=
 endif
 
 all: $(TARGET)

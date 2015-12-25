@@ -28,11 +28,19 @@ typedef enum
 , SOCKET         /* Socket object */
 , RE_PATTERN     /* Regular expression pattern */
 , END_OF_FILE    /* End of file type (no idea if this is good)*/
+, ENVIRONMENT    /* Special type for the environment hash data */
 } object_type;
 
 struct object;
 
 typedef struct object *(*primitive_proc_t)(struct object *, struct object *);
+
+typedef struct 
+{
+    char *symbol;
+    struct object *obj;
+    UT_hash_handle hh;
+} env_entry;
 
 typedef struct object
 {
@@ -77,7 +85,6 @@ typedef struct object
         {
             char   *value;
             size_t size;
-            UT_hash_handle hh;
         } symbol;
 
         struct
@@ -134,6 +141,11 @@ typedef struct object
         {
             FILE *stream;
         } end_of_file;
+        
+        struct
+        {
+            env_entry *env;
+        } environment;
     } data;
 } object;
 
@@ -242,3 +254,13 @@ is_re_pattern_object(object *obj) {return obj->type == RE_PATTERN;}
 const char *get_re_pattern_string(object *obj);
 pcre *get_re_pattern_value(object *obj);
 
+object *make_environment(env_entry *entry);
+_static_inline_ char 
+is_environment_object(object *obj) {return obj->type == ENVIRONMENT;}
+_static_inline_ env_entry 
+*get_environment_obj(object *obj) {return obj->data.environment.env;};
+_static_inline_ void
+set_environment_obj(object *obj, env_entry *entry)
+{
+    obj->data.environment.env = entry;
+}

@@ -11,7 +11,7 @@
 #include "builtins.h"
 
 char is_self_evaluating(object *obj);
-char is_tagged_list(object *obj, object *sym);
+_static_inline_ char is_tagged_list(object *obj, object *sym);
 char is_quoted(object *obj);
 char is_definition(object *obj);
 char is_lambda(object *obj);
@@ -64,11 +64,6 @@ tailcall:
     if (is_self_evaluating(expr))
     {
         return expr;
-    }
-    else if (is_symbol_object(expr))
-    {
-        /* Look for symbol in the environment */
-        return find_variable(expr, env);
     }
     else if (is_quoted(expr))
     {
@@ -268,6 +263,11 @@ tailcall:
         }
         return result;
     }
+    else if (is_symbol_object(expr))
+    {
+        /* Look for symbol in the environment */
+        return find_variable(expr, env);
+    }
     else if (is_pair_object(expr))
     {
         procedure = eval(operator(expr), env);
@@ -389,11 +389,12 @@ object *list_of_values(object *expr, object *env)
     return the_empty_list;
 }
 
-char is_tagged_list(object *obj, object *sym)
+_static_inline_ char is_tagged_list(object *obj, object *sym)
 {
-    return is_pair_object(obj) 
-        && is_symbol_object(car(obj)) 
-        && car(obj) == sym;
+    return is_pair_object(obj)
+        && is_symbol_object(car(obj))
+        && ( ! strcmp(get_symbol_value(car(obj)),
+                      get_symbol_value(sym)));
 }
 
 char is_quoted(object *obj)

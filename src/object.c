@@ -287,17 +287,6 @@ char *get_string_value(object *obj)
 object *make_symbol(char *str)
 {
     object *obj;
-    object *temp;
-
-    temp = symbol_table;
-    while ( ! is_the_empty_list(temp))
-    {
-        if (strcmp(car(temp)->data.symbol.value, str) == 0)
-        {
-            return car(temp);
-        }
-        temp = cdr(temp);
-    }
 
     obj = alloc_object();
     obj->type = SYMBOL;
@@ -311,9 +300,6 @@ object *make_symbol(char *str)
     strcpy(obj->data.symbol.value, str);
     obj->data.symbol.size = strlen(obj->data.symbol.value);
 
-    /* TODO: check if this is needed here or in init.c */
-    symbol_table = cons(obj, symbol_table);
-    /* ---- */
     return obj;
 }
 
@@ -606,4 +592,14 @@ const char * get_re_pattern_string(object *obj)
 pcre *get_re_pattern_value(object *obj)
 {
     return obj->data.re_pattern.pattern;
+}
+
+object *make_environment(env_entry *entry)
+{
+    object *obj;
+
+    obj = alloc_object();
+    obj->type = ENVIRONMENT;
+    obj->data.environment.env = entry;
+    return obj;
 }

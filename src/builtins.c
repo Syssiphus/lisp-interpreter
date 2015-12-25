@@ -1162,6 +1162,9 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
         case END_OF_FILE:
             fprintf(stdout, "EOF\n");
             break;
+        case ENVIRONMENT:
+            fprintf(stdout, "ENVIRONMENT\n");
+            break;
     }
 }
 

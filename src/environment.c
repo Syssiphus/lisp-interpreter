@@ -7,25 +7,27 @@
 #include "builtins.h"
 
 #include "uthash.h"
+#include "gc.h"
+
+/* Redefine the malloc/free calls of uthash */
+#undef uthash_malloc
+#undef uthash_free
+#define uthash_malloc(sz) GC_malloc(sz)
+#define uthash_free(sz, ptr) /* Not needed, memory is collected automatically */
 
 object *make_frame(object *vars, object *vals);
 object *frame_variables(object *frame);
 object *frame_values(object *frame);
 object *first_frame(object *env);
-object *enclosing_environment(object *env);
+
+void populate_environment(object *env);
 
 /* Environment */
-object *make_environment(void)
-{
-    object *obj = setup_environment();
-    populate_environment(obj);
-    return obj;
-}
-
 object *setup_environment(void)
 {
     object *obj = extend_environment(the_empty_list, the_empty_list,
             the_empty_environment);
+    populate_environment(obj);
     return obj;
 }
 
@@ -133,81 +135,76 @@ void populate_environment(object *env)
     add_procedure("load-dynlib"     , load_dynlib_proc);
 }
 
+env_entry *add_symbol_to_env(char *symbol, object *obj, env_entry *env)
+{
+    env_entry *entry = GC_malloc(sizeof(env_entry));
+    if ( ! entry)
+    {
+        fprintf(stderr, "Out of memory.\n");
+        exit(1);
+    }
+    
+    entry->symbol = GC_malloc(strlen(symbol) + 1);
+    if ( ! entry->symbol)
+    {
+        fprintf(stderr, "Out of memory.\n");
+        exit(1);
+    }
+    strncpy(entry->symbol, symbol, strlen(symbol));
+    
+    entry->obj = obj;
+    HASH_ADD_STR(env, symbol, entry);
+    return entry;
+}
+
 object *extend_environment(object *vars, object *vals, object *base_env)
 {
-    return cons(make_frame(vars, vals), base_env);
-}
+    env_entry *new_env = NULL;
+    
+    while ( ! is_the_empty_list(vars))
+    {
+        new_env = add_symbol_to_env(get_symbol_value(car(vars)),
+                                    car(vals),
+                                    new_env);
+        vars = cdr(vars);
+        vals = cdr(vals);
+    }
 
-object *make_frame(object *vars, object *vals)
-{
-    return cons(vars, vals);
-}
-
-object *frame_variables(object *frame)
-{
-    return car(frame);
-}
-
-object *frame_values(object *frame)
-{
-    return cdr(frame);
-}
-
-object *first_frame(object *env)
-{
-    return car(env);
-}
-
-object *enclosing_environment(object *env)
-{
-    return cdr(env);
-}
-
-void add_symbol_to_frame(object *var, object *val, object *frame)
-{
-    set_car(frame, cons(var, car(frame)));
-    set_cdr(frame, cons(val, cdr(frame)));
+    return cons(make_environment(new_env), base_env);
 }
 
 void define_variable(object *symbol, object *value, object *env)
 {
-    object *frame, *vars, *vals;
+    char *symbol_name = get_symbol_value(symbol);
+    object *current_env = car(env);
+    env_entry *env_obj = get_environment_obj(current_env);
+    env_entry *env_symbol;
 
-    frame = first_frame(env);
-    vars = frame_variables(frame);
-    vals = frame_values(frame);
-    while ( ! is_the_empty_list(vars))
-    {
-        if (symbol == car(vars))
-        {
-            set_car(vars, symbol);
-            return;
-        }
-        vars = cdr(vars);
-        vals = cdr(vals);
-    }
-    add_symbol_to_frame(symbol, value, frame);
+    HASH_FIND_STR(env_obj, symbol_name, env_symbol);
+    if (env_symbol != NULL) return; /* already exists */
+
+    env_obj = add_symbol_to_env(symbol_name, value, env_obj);
+    
+    set_environment_obj(current_env, env_obj);
 }
 
 object *set_variable(object *symbol, object *value, object *env)
 {
+    char *symbol_name = get_symbol_value(symbol);
+
     while ( ! is_the_empty_list(env))
     {
-        object *frame = first_frame(env);
-        object *vars = frame_variables(frame);
-        object *vals = frame_values(frame);
-        while ( ! is_the_empty_list(vars))
+        env_entry *env_obj = get_environment_obj(car(env));
+        env_entry *env_symbol;
+
+        HASH_FIND_STR(env_obj, symbol_name, env_symbol);
+        if (env_symbol != NULL)
         {
-            if (strcmp(get_symbol_value(symbol), 
-                        get_symbol_value(car(vars))) == 0)
-            {
-                set_car(vals, value);
-                return ok_symbol;
-            }
-            vars = cdr(vars);
-            vals = cdr(vals);
+            env_symbol->obj = value;
+            return ok_symbol;
         }
-        env = enclosing_environment(env);
+
+        env = cdr(env);
     }
 
     return make_error("Unknown symbol '%s'", get_symbol_value(symbol));
@@ -215,30 +212,20 @@ object *set_variable(object *symbol, object *value, object *env)
 
 object *find_variable(object *symbol, object *env)
 {
+    char *symbol_name = get_symbol_value(symbol);
+
     while ( ! is_the_empty_list(env))
     {
-        object *frame = first_frame(env);
-        object *vars = frame_variables(frame);
-        object *vals = frame_values(frame);
-        object *stored_symbol;
+        env_entry *env_obj = get_environment_obj(car(env));
+        env_entry *env_symbol;
 
-        while ( ! is_the_empty_list(vars))
+        HASH_FIND_STR(env_obj, symbol_name, env_symbol);
+        if (env_symbol != NULL)
         {
-            stored_symbol = car(vars);
-
-            if (get_symbol_size(symbol) == get_symbol_size(stored_symbol))
-            {
-                if (bcmp(get_symbol_value(symbol),
-                         get_symbol_value(stored_symbol),
-                         get_symbol_size(symbol)) == 0)
-                {
-                    return car(vals);
-                }
-            }
-            vars = cdr(vars);
-            vals = cdr(vals);
+            return env_symbol->obj;
         }
-        env = enclosing_environment(env);
+
+        env = cdr(env);
     }
 
     return make_error("Unknown symbol '%s'", get_symbol_value(symbol));

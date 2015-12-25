@@ -5,7 +5,7 @@
 #include "object.h"
 #include "builtins.h"
 
-object *make_environment(void);
+object *setup_environment(void);
 void define_variable(object *symbol, object *value, object *env);
 
 void init(int argc, char **argv)
@@ -29,8 +29,11 @@ void init(int argc, char **argv)
     the_empty_list = alloc_object();
     the_empty_list->type = THE_EMPTY_LIST;
 
+    /* The global environment */
+    the_empty_environment = the_empty_list;
+    the_global_environment = setup_environment();
+
     /* Global symbols */
-    symbol_table     = the_empty_list;
     define_symbol    = make_symbol("define");
     set_symbol       = make_symbol("set!");
     quote_symbol     = make_symbol("quote");
@@ -53,10 +56,6 @@ void init(int argc, char **argv)
     with_output_to_file_symbol = make_symbol("with-output-to-file");
     current_input_port_symbol  = make_symbol("current-input-port");
     current_output_port_symbol = make_symbol("current-output-port");
-
-    /* The global environment */
-    the_empty_environment = the_empty_list;
-    the_global_environment = make_environment();
 
     /* Input/Output ports */
     define_variable(current_input_port_symbol, 

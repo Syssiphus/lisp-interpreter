@@ -48,6 +48,7 @@ long _number_of_args(object *arguments)
 object *apply_fake_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
+    UNUSED(env);
     return make_error("Primitive function 'apply' should not "
                       "be called natively.");
 }
@@ -56,12 +57,14 @@ object *apply_fake_proc(object *arguments, object *env)
 object *eval_fake_proc(object *arguments, object *env)
 {
     UNUSED(arguments);
+    UNUSED(env);
     return make_error("Primitive function 'eval' should not "
                       "be called natively.");
 }
 
 object *cons_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     object *car_obj = car(arguments);
     object *cdr_obj = cadr(arguments);
     return cons(car_obj, cdr_obj);
@@ -69,39 +72,46 @@ object *cons_proc(object *arguments, object *env)
 
 object *car_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     return car(car(arguments));
 }
 
 object *cdr_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     return cdr(car(arguments));
 }
 
 object *set_car_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     set_car(car(arguments), cadr(arguments));
     return ok_symbol;
 }
 
 object *set_cdr_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     set_cdr(car(arguments), cadr(arguments));
     return ok_symbol;
 }
 
 object *is_pair_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     return is_pair_object(car(arguments)) ? true : false;
 }
 
 object *is_boolean_proc(object *arguments, object *env)
 {
+    UNUSED(env);
     return is_boolean_object(car(arguments)) ? true : false;
 }
 
 object *length_proc(object *arguments, object *env)
 {
     long result = 0;
+    UNUSED(env);
 
     if (_number_of_args(arguments) != 1)
     {
@@ -131,6 +141,7 @@ object *length_proc(object *arguments, object *env)
 object *add_proc(object *arguments, object *env)
 {
     object *result = make_fixnum(0);
+    UNUSED(env);
 
     if (_number_of_args(arguments) == 0)
     {
@@ -163,6 +174,7 @@ object *sub_proc(object *arguments, object *env)
     char need_realnum = 0;
     char first_value = 1;
     double result = 0;
+    UNUSED(env);
     if (_number_of_args(arguments) == 0)
     {
         return make_error("Arguments missing");
@@ -204,6 +216,7 @@ object *sub_proc(object *arguments, object *env)
 object *mul_proc(object *arguments, object *env)
 {
     object *result = make_fixnum(1);
+    UNUSED(env);
 
     if (_number_of_args(arguments) == 0)
     {
@@ -236,6 +249,7 @@ object *quotient_proc(object *arguments, object *env)
 {
     char need_realnum = 0;
     double result, value1, value2;
+    UNUSED(env);
     if (_number_of_args(arguments) != 2)
     {
         return make_error("'quotient' needs exactly 2 arguments.");
@@ -490,12 +504,15 @@ object *is_symbol_equal_proc(object *arguments, object *env)
 {
     object *obj1 = car(arguments);
     object *obj2 = cadr(arguments);
+    
+    UNUSED(env);
 
     if ( ! is_symbol_object(obj1) || ! is_symbol_object(obj2))
     {
         return false;
     }
-    return (obj1 == obj2) ? true : false;
+    return (strcmp(get_symbol_value(obj1), get_symbol_value(obj2)) == 0) 
+        ? true : false;
 }
 
 object *is_string_equal_proc(object *arguments, object *env)
@@ -1170,7 +1187,7 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
 
 object *pretty_print_structure_proc(object *arguments, object *env)
 {
-    _pretty_print(car(arguments), "", 0);
+    _pretty_print(arguments, "", 0);
     return ok_symbol;
 }
 

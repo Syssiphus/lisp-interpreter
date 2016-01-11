@@ -546,6 +546,11 @@ object *make_compound_proc(object *parameters, object *body, object *env)
 {
     object *obj = alloc_object();
     obj->type = COMPOUND_PROC;
+#ifdef OBJECT_REFERENCES
+    obj->data.compound_proc.optimized = 0;
+#else
+    obj->data.compound_proc.optimized = 1;
+#endif
     obj->data.compound_proc.parameters = parameters;
     obj->data.compound_proc.body = body;
     obj->data.compound_proc.env = env;
@@ -602,4 +607,12 @@ object *make_environment(env_entry *entry)
     obj->type = ENVIRONMENT;
     obj->data.environment.env = entry;
     return obj;
+}
+
+object *make_obj_ref(object *obj)
+{
+    object *ref = alloc_object();
+    ref->type = OBJ_REF;
+    ref->data.obj_ref.object = &obj;
+    return ref;
 }

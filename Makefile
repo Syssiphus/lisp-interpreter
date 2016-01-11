@@ -4,8 +4,17 @@
 # log:
 #      - 2015 Nov 11: Created makefile
 
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S),Linux)
 CC = gcc
 CXX = g++
+else
+CC = gcc
+CXX = g++
+# CC = gcc-4.9
+# CXX = g++-4.9
+endif
 
 TARGET = scheme
 LEGACY_TARGET = legacy_scheme
@@ -18,8 +27,6 @@ OBJS = $(SOURCES:.c=.o) $(CXX_SOURCES:.cpp=.o)
 LEGACY_SOURCES = legacy_src/main.c
 LEGACY_OBJS = $(LEGACY_SOURCES:.c=.o)
 
-UNAME_S := $(shell uname -s)
-
 ifeq ($(PROF), 1)
 PROFFLAG = -pg
 PROFLINK = -pg
@@ -28,13 +35,8 @@ PROFFLAG =
 PROFLINK =
 endif
 
-ifeq ($(UNAME_S), Linux)
-CFLAGS = $(PROFFLAG) -I/opt/local/include -Isrc -Wall -std=c99 
-LDFLAGS = $(PROFLINK) -L/opt/local/lib -lgc -ldl -lpcre -lm -lpthread
-else
 CFLAGS = $(PROFFLAG) -Isrc -Wall -std=c99
 LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre -lm 
-endif
 
 ifeq ($(DBG), 1)
 CFLAGS += $(PROFFLAG) -g -O0 -D_DEBUG

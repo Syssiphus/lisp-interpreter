@@ -9,6 +9,7 @@ void define_variable(object *symbol, object *value, object *env);
 
 object *set_variable(object *symbol, object *value, object *env);
 object *find_variable(object *symbol, object *env);
+object *lookup_variable(object *symbol, object *env, char throw_error);
 
 object *definition_variable(object *exp);
 object *definition_value(object *exp);

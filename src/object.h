@@ -29,6 +29,7 @@ typedef enum
 , RE_PATTERN     /* Regular expression pattern */
 , END_OF_FILE    /* End of file type (no idea if this is good)*/
 , ENVIRONMENT    /* Special type for the environment hash data */
+, OBJ_REF        /* Reference to a struct object pointer */
 } object_type;
 
 struct object;
@@ -126,6 +127,7 @@ typedef struct object
 
         struct
         {
+            char optimized;
             struct object *parameters;
             struct object *body;
             struct object *env;
@@ -146,6 +148,11 @@ typedef struct object
         {
             env_entry *env;
         } environment;
+
+        struct 
+        {
+            struct object **object;
+        } obj_ref;
     } data;
 } object;
 
@@ -258,9 +265,15 @@ object *make_environment(env_entry *entry);
 _static_inline_ char 
 is_environment_object(object *obj) {return obj->type == ENVIRONMENT;}
 _static_inline_ env_entry 
-*get_environment_obj(object *obj) {return obj->data.environment.env;};
+*get_environment_obj(object *obj) {return obj->data.environment.env;}
 _static_inline_ void
 set_environment_obj(object *obj, env_entry *entry)
 {
     obj->data.environment.env = entry;
 }
+
+object *make_obj_ref(object *obj);
+_static_inline_
+char is_obj_ref(object *obj) {return obj->type == OBJ_REF;}
+_static_inline_
+object **get_obj_ref(object *obj) {return obj->data.obj_ref.object;}

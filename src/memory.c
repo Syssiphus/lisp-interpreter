@@ -16,7 +16,7 @@ void init_memory_pool(void)
 
     GC_set_all_interior_pointers(0);
     GC_INIT ();
-    GC_enable_incremental();
+    /* GC_enable_incremental(); */
 }
 
 long memory_usage(void)

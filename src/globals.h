@@ -1,6 +1,8 @@
 
 #pragma once
 
+/* #define OBJECT_REFERENCES */
+
 #include "object.h"
 
 /* Environment */

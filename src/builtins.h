@@ -2,15 +2,14 @@
 #pragma once
 
 #include "object.h"
+#include "defines.h"
 
-__attribute__((always_inline))
-static inline object *cons(object *a, object *b)
+_static_inline_ object *cons(object *a, object *b)
 {
     return make_pair(a, b);
 }
 
-__attribute__((always_inline))
-static inline object *car(object *obj)
+_static_inline_ object *car(object *obj)
 {
     if (is_pair_object(obj))
     {
@@ -19,8 +18,7 @@ static inline object *car(object *obj)
     return make_error("Not a pair object.");
 }
 
-__attribute__((always_inline))
-static inline object *cdr(object *obj)
+_static_inline_ object *cdr(object *obj)
 {
     if (is_pair_object(obj))
     {
@@ -29,14 +27,12 @@ static inline object *cdr(object *obj)
     return make_error("Not a pair object.");
 }
 
-__attribute__((always_inline))
-static inline void set_car(object *dst, object *obj)
+_static_inline_ void set_car(object *dst, object *obj)
 {
     dst->data.pair.car = obj;
 }
 
-__attribute__((always_inline))
-static inline void set_cdr(object *dst, object *obj)
+_static_inline_ void set_cdr(object *dst, object *obj)
 {
     dst->data.pair.cdr = obj;
 }

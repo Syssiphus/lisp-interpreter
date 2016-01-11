@@ -128,6 +128,11 @@
       (car l)
       (list-ref (cdr l) (- k 1))))
 
+(define (member l k)
+  (cond ((null? l) #f)
+        ((eq? (car l) k) #t))
+  (member (cdr l) k))
+
 ;; Display of information
 (define (newline)
   (display #\newline))

@@ -26,6 +26,8 @@ char is_or(object *obj);
 char is_and(object *obj);
 char is_do(object *obj);
 
+object *make_if(object *predicate, object *expression, object *else_expression);
+
 object *lambda_parameters(object *obj);
 object *lambda_body(object *obj);
 object *text_of_quotation(object *obj);
@@ -52,6 +54,7 @@ object *eval_environment(object *expr);
 object *apply_operator(object *expr);
 object *apply_operands(object *expr);
 
+void optimize_lookups(object *body, object *env);
 
 object *eval(object *expr, object *env)
 {
@@ -268,6 +271,10 @@ tailcall:
         /* Look for symbol in the environment */
         return find_variable(expr, env);
     }
+    else if (is_obj_ref(expr))
+    {
+        return *get_obj_ref(expr);
+    }
     else if (is_pair_object(expr))
     {
         procedure = eval(operator(expr), env);
@@ -286,7 +293,7 @@ tailcall:
             env  = eval_environment(arguments);
             goto tailcall;
         }
-        /* Special handling for: eval */
+        /* Special handling for: apply */
         else if (is_primitive_proc_object(procedure)
                  && procedure->data.primitive_proc.fn == apply_fake_proc)
         {
@@ -339,6 +346,16 @@ tailcall:
 
             env = extend_environment(vars, vals, 
                     procedure->data.compound_proc.env);
+            
+            /* Optimization of the body: Replace symbols with object references
+               to the values the symbol points to */
+            if ( ! procedure->data.compound_proc.optimized)
+            {
+                optimize_lookups(procedure->data.compound_proc.body,
+                                 env);
+                procedure->data.compound_proc.optimized = 1;
+            }
+
             expr = make_begin(procedure->data.compound_proc.body);
             goto tailcall;
         }
@@ -375,6 +392,7 @@ char is_self_evaluating(object *obj)
         || is_input_port_object(obj)
         || is_output_port_object(obj)
         || is_primitive_proc_object(obj)
+        || is_compound_proc_object(obj)
         ;
 }
 
@@ -437,6 +455,13 @@ char is_if(object *obj)
     return is_tagged_list(obj, if_symbol);
 }
 
+object *make_if(object *predicate, object *expression, object *else_expression)
+{
+    return cons(if_symbol,
+                cons(predicate,
+                     cons(expression, else_expression)));
+}
+
 char is_let(object *obj)
 {
     return is_tagged_list(obj, let_symbol);
@@ -494,6 +519,7 @@ object *make_cond(object *cond)
 {
     object *predicate;
     object *expression;
+    object *else_expression;
 
     if (is_the_empty_list(cond))
     {
@@ -502,13 +528,23 @@ object *make_cond(object *cond)
 
     predicate = caar(cond);
     expression = cdar(cond);
+    else_expression = cdr(cond);
+    
+    /* FIXME: Why is the else symbol not found otherwise?
+       It worked before! */
+    if (is_symbol_object(predicate) 
+        && (strcmp(get_symbol_value(predicate),
+                   get_symbol_value(else_symbol)) == 0))
+    {
+        predicate = else_symbol;
+    }
 
     if (predicate == else_symbol && ! is_the_empty_list(cdr(cond)))
     {
         return make_error("'else' keyword is not the last condition in "
                 "cond statement");
     }
-
+    
     if (predicate == else_symbol)
     {
         predicate = true;
@@ -517,7 +553,7 @@ object *make_cond(object *cond)
     return cons(if_symbol, 
             cons(predicate,  /* Predicate */
                 cons(make_begin(expression), /* True */
-                    cons(make_cond(cdr(cond)), /* False */
+                    cons(make_cond(else_expression), /* False */
                         the_empty_list))));
 }
 
@@ -640,5 +676,30 @@ object *prepare_apply_operands(object *expr)
 object *apply_operands(object *expr)
 {
     return prepare_apply_operands(cdr(expr));
+}
+
+void optimize_lookups(object *body, object *env)
+{
+    while ( ! is_the_empty_list(body))
+    {
+        object *expr = car(body);
+        
+        if (is_pair_object(expr))
+        {
+            /* Recurse */
+            optimize_lookups(expr, env);
+        }
+        else if (is_symbol_object(expr))
+        {
+            /* See if we can replace symbols with references */
+            object *var = lookup_variable(expr, env, 0);
+            if (var)
+            {
+                set_car_proc(cons(body, cons(var, the_empty_list)), env);
+            }
+        }
+
+        body = cdr(body);
+    }
 }
 

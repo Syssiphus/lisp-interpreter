@@ -210,7 +210,7 @@ object *set_variable(object *symbol, object *value, object *env)
     return make_error("Unknown symbol '%s'", get_symbol_value(symbol));
 }
 
-object *find_variable(object *symbol, object *env)
+object *lookup_variable(object *symbol, object *env, char throw_error)
 {
     char *symbol_name = get_symbol_value(symbol);
 
@@ -228,7 +228,14 @@ object *find_variable(object *symbol, object *env)
         env = cdr(env);
     }
 
-    return make_error("Unknown symbol '%s'", get_symbol_value(symbol));
+    return throw_error
+        ? make_error("Unknown symbol '%s'", get_symbol_value(symbol))
+        : NULL;
+}
+
+object *find_variable(object *symbol, object *env)
+{
+    return lookup_variable(symbol, env, 1);
 }
 
 object *definition_variable(object *exp)

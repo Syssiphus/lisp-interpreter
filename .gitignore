@@ -19,9 +19,12 @@ legacy_scheme.exe
 ._*
 
 src/.#*
+scripts/controller.scm
 
 tests/error.txt
 tests/result.txt
 
 gmon.out
+
+.DS_Store
 

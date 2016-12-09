@@ -1182,6 +1182,12 @@ void _pretty_print(object *arguments, char *old_indent, char is_last)
         case ENVIRONMENT:
             fprintf(stdout, "ENVIRONMENT\n");
             break;
+        case OBJ_REF:
+            fprintf(stdout, "OBJ_REF\n");
+            break;
+        case QUEUE:
+            fprintf(stdout, "QUEUE\n");
+            break;
     }
 }
 
@@ -1575,7 +1581,6 @@ object *select_proc(object *arguments, object *env)
 {
     object *rd_list, *wr_list, *err_list;
     fd_set rd_set, wr_set, err_set;
-    long timeout;
     struct timeval timeout_s;
     int max_fds = 0;
     object *rd_results = the_empty_list;
@@ -1584,7 +1589,8 @@ object *select_proc(object *arguments, object *env)
     object *results = the_empty_list;
     
     /* Check for proper number and types of arguments */
-    if (_number_of_args(arguments) != 4)
+    if (_number_of_args(arguments) != 4
+            && _number_of_args(arguments) != 5)
     {
         return make_error("'select' takes exactly 4 arguments.");
     }
@@ -1621,10 +1627,22 @@ object *select_proc(object *arguments, object *env)
     rd_list = car(arguments);
     wr_list = cadr(arguments);
     err_list = caddr(arguments);
-    timeout = get_fixnum_value(cadddr(arguments));
     
-    timeout_s.tv_sec = 0;
-    timeout_s.tv_usec = timeout;
+    timeout_s.tv_sec = get_fixnum_value(cadddr(arguments));
+    timeout_s.tv_usec = 0;
+    if (! is_the_empty_list(cddddr(arguments)))
+    {
+        object *usecs = car(cddddr(arguments));
+        if (is_fixnum_object(usecs))
+        {
+            timeout_s.tv_usec = get_fixnum_value(usecs);
+        }
+        else
+        {
+            return make_error("'select' expects a FIXNUM as fifth "
+                    "(optional) argument.");
+        }
+    }
     
     /* Set the FD_SET's */
     {
@@ -1640,9 +1658,46 @@ object *select_proc(object *arguments, object *env)
 
                 /* Evaluate the object, it might be a symbol */
                 set_car(args_list[i], eval(car(args_list[i]), env));
-                fd = get_socket_fd(car(args_list[i]));
-                if (fd > max_fds) max_fds = fd;
-                FD_SET(fd, sets_list[i]);
+                if (is_socket_object(car(args_list[i])))
+                {
+                    /* Socket */
+                    fd = get_socket_fd(car(args_list[i]));
+                    if (fd > max_fds) max_fds = fd;
+                    FD_SET(fd, sets_list[i]);
+                }
+                else if (is_queue_object(car(args_list[i])))
+                {
+                    /* Queue */
+                    if (sets_list[i] == &rd_set)
+                    {
+                        /* Add the receiver end to the list */
+                        fd = get_queue_read_fd(car(args_list[i]));
+                        if (fd > max_fds) max_fds = fd;
+                        FD_SET(fd, sets_list[i]);
+                    }
+                    else if (sets_list[i] == &wr_set)
+                    {
+                        /* Add the sender end to the list */
+                        fd = get_queue_write_fd(car(args_list[i]));
+                        if (fd > max_fds) max_fds = fd;
+                        FD_SET(fd, sets_list[i]);
+                    }
+                    else if (sets_list[i] == &err_set)
+                    {
+                        /* Add the both ends to the list */
+                        fd = get_queue_read_fd(car(args_list[i]));
+                        if (fd > max_fds) max_fds = fd;
+                        FD_SET(fd, sets_list[i]);
+                        fd = get_queue_write_fd(car(args_list[i]));
+                        if (fd > max_fds) max_fds = fd;
+                        FD_SET(fd, sets_list[i]);
+                    }
+                }
+                else
+                {
+                    /* Skip unsupported objects (for now) */
+                }
+
                 args_list[i] = cdr(args_list[i]);
             }
         }
@@ -1674,10 +1729,51 @@ object *select_proc(object *arguments, object *env)
                     object *list = args_list[i];
                     while ( ! is_the_empty_list(list))
                     {
-                        if (get_socket_fd(car(list)) == fd)
+                        if (is_socket_object(car(list)))
                         {
-                            *results_list[i] = cons(car(list), 
-                                                    *results_list[i]);
+                            /* Socket */
+                            if (get_socket_fd(car(list)) == fd)
+                            {
+                                *results_list[i] = cons(car(list), 
+                                        *results_list[i]);
+                            }
+                        }
+                        else if (is_queue_object(car(list)))
+                        {
+                            /* Queue */
+                            if (sets_list[i] == &rd_set)
+                            {
+                                /* Read fd's */
+                                if (get_queue_read_fd(car(list)) == fd)
+                                {
+                                    *results_list[i] = cons(car(list), 
+                                            *results_list[i]);
+                                }
+                            }
+                            else if (sets_list[i] == &wr_set)
+                            {
+                                /* Write fd's */
+                                if (get_queue_write_fd(car(list)) == fd)
+                                {
+                                    *results_list[i] = cons(car(list), 
+                                            *results_list[i]);
+                                }
+                            }
+                            else if (sets_list[i] == &err_set)
+                            {
+                                /* Both fd's */
+                                if (get_queue_read_fd(car(list)) == fd)
+                                {
+                                    *results_list[i] = cons(car(list), 
+                                            *results_list[i]);
+                                }
+
+                                if (get_queue_write_fd(car(list)) == fd)
+                                {
+                                    *results_list[i] = cons(car(list), 
+                                            *results_list[i]);
+                                }
+                            }
                         }
                         list = cdr(list);
                     }
@@ -1800,6 +1896,61 @@ object *read_char_proc(object *arguments, object *env)
     return make_character(c);;
 }
 
+object *peek_char_proc(object *arguments, object *env)
+{
+    object *obj = the_empty_list;
+    int nr_args = _number_of_args(arguments);
+    object *port = find_variable(current_input_port_symbol, env);
+
+    if (nr_args != 1 && nr_args != 0)
+    {
+        return make_error("'peek-char' takes 0 or 1 argument.");
+    }
+
+    if (nr_args == 1)
+    {
+        port = eval(car(arguments), env);
+    }
+
+    if (is_socket_object(port))
+    {
+        char buffer[1];
+        ssize_t size = recv(get_socket_fd(port), buffer, sizeof(buffer), 
+                MSG_PEEK | MSG_DONTWAIT);
+        if (size == 0) /* Nothing to read */
+        {
+            /* obj = make_eof(get_socket_stream(port)); */
+            obj = false;
+        }
+        else if (size < 0) /* ERROR */
+        {
+            return make_error("'peek-char' error: %s", strerror(errno));
+        }
+        else
+        {
+            obj = make_character(buffer[0]);
+        }
+    }
+    else
+    {
+        make_error("'peek-char' does not support supplied object type.");
+    }
+
+    return obj;
+}
+
+object *is_eof_proc(object *arguments, object *env)
+{
+    int nr_args = _number_of_args(arguments);
+
+    if (nr_args != 1)
+    {
+        return make_error("'eof-object?' takes exactly 1 argument.");
+    }
+
+    return is_eof_object(car(arguments)) ? true : false;
+}
+
 object *write_proc(object *arguments, object *env)
 {
     object *port = find_variable(current_output_port_symbol, env);
@@ -1862,3 +2013,80 @@ object *read_proc(object *arguments, object *env)
                           "SOCKET as first argument.");
     }
 }
+
+object *make_queue_proc(object *arguments, object *env)
+{
+    UNUSED(arguments);
+    UNUSED(env);
+    return make_queue();
+}
+
+object *read_queue_proc(object *arguments, object *env)
+{
+    object *retval = the_empty_list;
+    char buf;
+    int result = read(get_queue_read_fd(car(arguments)), &buf, 1);
+
+    if (result > 0)
+    {
+        object *fifo_pos = get_queue_stack(car(arguments));
+        object *last_pos = NULL;
+
+        while (fifo_pos != the_empty_list)
+        {
+            if (cdr(fifo_pos) == the_empty_list)
+            {
+                retval = car(fifo_pos);
+                if (last_pos != NULL)
+                {
+                    set_cdr(last_pos, the_empty_list);
+                }
+                else
+                {
+                    set_queue_stack(car(arguments), the_empty_list);
+                }
+
+                break;
+            }
+
+            last_pos = fifo_pos;
+            fifo_pos = cdr(fifo_pos);
+        }
+    }
+    else if (result == 0)
+    {
+        retval = make_error("Queue is empty.");
+    }
+    else
+    {
+        fprintf(stderr, "Error while reading from queue: %s\n",
+                strerror(errno));
+        exit(1);
+    }
+
+    return retval;
+}
+
+object *write_queue_proc(object *arguments, object *env)
+{
+    int bytes_written = 0;
+    bytes_written = write(get_queue_write_fd(car(arguments)), "x", 1);
+    if (bytes_written > 0)
+    {
+        object *stack = get_queue_stack(car(arguments));
+        set_queue_stack(car(arguments), cons(cadr(arguments), stack));
+    }
+    else if (bytes_written == 0)
+    {
+        return make_error("Error writing to queue object");
+    }
+    else
+    {
+        fprintf(stderr, "Error while writing to queue: %s\n",
+                strerror(errno));
+        exit(1);
+    }
+
+    return ok_symbol;
+}
+

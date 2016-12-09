@@ -125,14 +125,20 @@ void populate_environment(object *env)
     
     add_procedure("sleep", sleep_proc);
     
-    add_procedure("write-char", write_char_proc);
-    add_procedure("read-char" , read_char_proc);
+    add_procedure("write-char" , write_char_proc);
+    add_procedure("read-char"  , read_char_proc);
+    add_procedure("peek-char"  , peek_char_proc);
+    add_procedure("eof-object?", is_eof_proc);
     
     add_procedure("write", write_proc);
     add_procedure("read", read_proc);
 
     add_procedure("print-structure" , pretty_print_structure_proc);
     add_procedure("load-dynlib"     , load_dynlib_proc);
+
+    add_procedure("make-queue"      , make_queue_proc);
+    add_procedure("read-queue"      , read_queue_proc);
+    add_procedure("write-queue"     , write_queue_proc);
 }
 
 env_entry *add_symbol_to_env(char *symbol, object *obj, env_entry *env)

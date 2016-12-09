@@ -1,0 +1,38 @@
+
+(define (mandel-iter cx cy max-iter)
+  (let ((x 0.0)
+        (y 0.0)
+        (xx 0.0)
+        (yy 0.0)
+        (xy 0.0)
+        (i max-iter))
+    (do () ((or (<= i 0) (> (+ xx yy) 4.0)))
+      (set! xy (* x y))
+      (set! xx (* x x))
+      (set! yy (* y y))
+      (set! x (+ (- xx yy) cx))
+      (set! y (+ xy xy cy))
+      (set! i (- i 1)))
+    (- max-iter i)))
+
+(define (mandelbrot2 filename xmin xmax ymin ymax iterations)
+  (let ((width 800)
+        (height 600))
+    (with-output-to-file filename
+      (begin (display "P2") (newline)
+             (display width) (newline)
+             (display height) (newline)
+             (display iterations) (newline)
+             (do ((iy 0 (+ iy 1)))
+                 ((>= iy height))
+               (do ((ix 0 (+ ix 1)))
+                   ((>= ix width))
+                 (let ((x (+ xmin (/ (* (- xmax xmin) ix) (- width 1.0))))
+                       (y (+ ymin (/ (* (- ymax ymin) iy) (- height 1.0)))))
+                   (display (mandel-iter x y iterations))
+                   (newline))))))))
+  
+(define (plot2)
+  (mandelbrot2 "out2.pgm" -2.0 1.0 -1.0 1.0 255))
+
+

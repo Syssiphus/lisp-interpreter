@@ -156,6 +156,10 @@ void scheme_write(FILE *out, object *obj)
         fprintf(out, "<regex pattern: \"%s\">", 
                 get_re_pattern_string(obj));
     }
+    else if (is_queue_object(obj))
+    {
+        fprintf(out, "<QUEUE object>");
+    }
     else
     {
         fprintf(stderr, "%s, %d: Cannot write unknown object. '%s'\n",

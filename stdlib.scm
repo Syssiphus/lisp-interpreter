@@ -52,6 +52,13 @@
         out))
   (iter l '()))
 
+(define (remove x l)
+  (define (iter i acc)
+    (cond ((null? i) (reverse acc))
+          ((eq? x (car i)) (iter (cdr i) acc))
+          (else (iter (cdr i) (cons (car i) acc)))))
+  (iter l '()))
+
 (define (map proc items)
   (if (null? items)
       '()

@@ -6,14 +6,11 @@
 
 UNAME_S := $(shell uname -s)
 
-ifeq ($(UNAME_S),Linux)
-CC = gcc
-CXX = g++
+ifeq ($(UNAME_S),Darwin)
+# CC  = gcc 
+CC  = clang
 else
 CC = gcc
-CXX = g++
-# CC = gcc-4.9
-# CXX = g++-4.9
 endif
 
 TARGET = scheme
@@ -36,7 +33,15 @@ PROFLINK =
 endif
 
 CFLAGS = $(PROFFLAG) -Isrc -Wall -std=c99
-LDFLAGS = $(PROFLINK) -lgc -ldl -lpcre -lm 
+LDFLAGS = $(PROFLINK) -lgc -ldl -lm 
+
+# libPCRE
+CFLAGS += `pkg-config --cflags libpcre`
+LDFLAGS += `pkg-config --libs libpcre`
+
+# garbage collector
+CFLAGS += `pkg-config --cflags bdw-gc`
+LDFLAGS += `pkg-config --libs bdw-gc`
 
 ifeq ($(DBG), 1)
 CFLAGS += $(PROFFLAG) -g -O0 -D_DEBUG
@@ -56,9 +61,6 @@ clean:
 
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
-
-%.o: %.cpp
-	$(CXX) -c -o $@ $< $(CXXFLAGS)
 
 $(TARGET): $(OBJS)
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS)

@@ -30,6 +30,7 @@ typedef enum
 , END_OF_FILE    /* End of file type (no idea if this is good)*/
 , ENVIRONMENT    /* Special type for the environment hash data */
 , OBJ_REF        /* Reference to a struct object pointer */
+, QUEUE          /* FIFO queue object */
 } object_type;
 
 struct object;
@@ -118,6 +119,7 @@ typedef struct object
         struct
         {
             int  fd;
+            /* FILE *stream; */
         } socket;
 
         struct
@@ -153,6 +155,12 @@ typedef struct object
         {
             struct object **object;
         } obj_ref;
+
+        struct
+        {
+            int socket_vector[2];
+            struct object *stack;
+        } queue;
     } data;
 } object;
 
@@ -245,6 +253,7 @@ object *make_socket_from_fd(int fd);
 _static_inline_ char 
 is_socket_object(object *obj) {return obj->type == SOCKET;}
 int get_socket_fd(object *obj);
+/* FILE *get_socket_stream(object *obj); */
 void close_socket(object *obj);
 
 object *make_lambda(object *arguments, object *body);
@@ -277,3 +286,21 @@ _static_inline_
 char is_obj_ref(object *obj) {return obj->type == OBJ_REF;}
 _static_inline_
 object **get_obj_ref(object *obj) {return obj->data.obj_ref.object;}
+
+object *make_queue(void);
+_static_inline_
+char is_queue_object(object *obj) {return obj->type == QUEUE;}
+_static_inline_
+int get_queue_read_fd(object *obj) {return obj->data.queue.socket_vector[1];}
+_static_inline_
+int get_queue_write_fd(object *obj) {return obj->data.queue.socket_vector[0];}
+_static_inline_
+object *get_queue_stack(object *obj) {return obj->data.queue.stack;}
+_static_inline_
+void set_queue_stack(object *obj, object *stack) 
+{
+    obj->data.queue.stack = stack;
+}
+
+
+

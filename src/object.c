@@ -1,4 +1,5 @@
 
+/* #define _POSIX_SOURCE */
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -490,9 +491,28 @@ object *make_socket(void)
     if (setsockopt(obj->data.socket.fd, SOL_SOCKET, SO_REUSEADDR, 
                    &(int){ 1 }, sizeof(int)) < 0)
     {
+        return make_error("Error setting the socket options "
+                "(SO_REUSEADDR): %s",
+                strerror(errno));
+    }
+
+    /* Set the keepalive to be able to detect the orderly shutdown */
+    if (setsockopt(obj->data.socket.fd, SOL_SOCKET, SO_KEEPALIVE, 
+                   &(int){ 1 }, sizeof(int)) < 0)
+    {
+        return make_error("Error setting the socket options "
+                "(SO_KEEPALIVE): %s",
+                strerror(errno));
+    }
+
+    /*
+    obj->data.socket.stream = fdopen(obj->data.socket.fd, "a+");
+    if (obj->data.socket.stream == NULL)
+    {
         return make_error("Error setting the socket options: %s",
                           strerror(errno));
     }
+    */
  
     return obj;
 }
@@ -512,6 +532,13 @@ int get_socket_fd(object *obj)
 {
     return obj->data.socket.fd;
 }
+
+/*
+FILE *get_socket_stream(object *obj)
+{
+    return obj->data.socket.stream;
+}
+*/
 
 void close_socket(object *obj)
 {
@@ -616,3 +643,43 @@ object *make_obj_ref(object *obj)
     ref->data.obj_ref.object = &obj;
     return ref;
 }
+
+void close_socketpair_on_collect(void *obj, void *arg)
+{
+    int i = 0;
+    object *obj_ref = (object *)obj;
+    UNUSED(arg);
+
+    for (; i < 2; ++i)
+    {
+        if (obj_ref->data.queue.socket_vector[i] != -1)
+        {
+            if (close(obj_ref->data.queue.socket_vector[i]) == -1)
+            {
+                fprintf(stderr, "Error while closing socketpair: %s\n",
+                        strerror(errno));
+                exit(1);
+            }
+            obj_ref->data.queue.socket_vector[i] = -1;
+        }
+    }
+}
+
+object *make_queue(void)
+{
+    object *obj = alloc_with_finalizer(close_socketpair_on_collect);
+    int err;
+
+    obj->type = QUEUE;
+    err = socketpair(PF_LOCAL, SOCK_STREAM, 0, obj->data.queue.socket_vector);
+    if (err < 0)
+    {
+        fprintf(stderr, "Error while creating socketpair: %s\n",
+                strerror(errno));
+        exit(1);
+    }
+    obj->data.queue.stack = the_empty_list;
+    return obj;
+}
+
+

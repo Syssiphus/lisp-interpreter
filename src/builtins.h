@@ -51,6 +51,7 @@ _static_inline_ void set_cdr(object *dst, object *obj)
 
 #define cadddr(x) car(cdr(cdr(cdr(x))))
 #define caddar(x) car(cdr(cdr(car(x))))
+#define cddddr(x) cdr(cdr(cdr(cdr(x))))
 
 object *apply_fake_proc(object *arguments, object *env);
 object *eval_fake_proc(object *arguments, object *env);
@@ -148,6 +149,13 @@ object *sleep_proc(object *arguments, object *env);
 
 object *write_char_proc(object *arguments, object *env);
 object *read_char_proc(object *arguments, object *env);
+object *peek_char_proc(object *arguments, object *env);
+object *is_eof_proc(object *arguments, object *env);
 
 object *write_proc(object *arguments, object *env);
 object *read_proc(object *arguments, object *env);
+
+object *make_queue_proc(object *arguments, object *env);
+object *read_queue_proc(object *arguments, object *env);
+object *write_queue_proc(object *arguments, object *env);
+

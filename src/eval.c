@@ -393,6 +393,7 @@ char is_self_evaluating(object *obj)
         || is_output_port_object(obj)
         || is_primitive_proc_object(obj)
         || is_compound_proc_object(obj)
+        || is_queue_object(obj)
         ;
 }
 

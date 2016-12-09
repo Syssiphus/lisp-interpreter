@@ -13,7 +13,7 @@ object *load_file(char *filename);
 
 int main(int argc, char** argv)
 {
-    fprintf(stdout, "Welcome to Scheme. (soon to be R5RS compliant)\n"
+    fprintf(stdout, "Welcome to Scheme. (sort of, not really finished yet.)\n"
             "Written by B.Paschen (bpaschen@googlemail.com)\n"
             "Use Ctrl-C to exit.\n");
 

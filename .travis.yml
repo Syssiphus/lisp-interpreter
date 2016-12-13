@@ -1,0 +1,12 @@
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -y libpcre3-dev
+    - sudo apt-get install -y libgc-dev
+
+language: c
+compiler: 
+    - clang
+    - gcc
+
+script: make

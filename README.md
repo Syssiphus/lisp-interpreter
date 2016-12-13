@@ -1,4 +1,4 @@
-## This is a lisp interpreter that was planned to be Scheme R5RS compatible.
+## A tiny unfinished lisp interpreter
 
 The basis for this project were the articles by Peter Michaux (http://peter.michaux.ca/) about writing a bootstrap scheme interpreter, which source can still be found in the legacy_src directory.
 

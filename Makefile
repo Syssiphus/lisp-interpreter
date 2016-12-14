@@ -32,7 +32,7 @@ PROFFLAG =
 PROFLINK =
 endif
 
-CFLAGS = $(PROFFLAG) -Isrc -Wall -std=c99
+CFLAGS = $(PROFFLAG) -Isrc -Wall -Werror -std=c99
 LDFLAGS = $(PROFLINK) -lgc -ldl -lm 
 
 # libPCRE

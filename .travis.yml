@@ -2,11 +2,11 @@
 before_install:
     - sudo apt-get -qq update
     - sudo apt-get install -y libpcre3-dev
+    - export MY_BUILD_DIR=`pwd`
     - mkdir ~/temp/ && cd ~/temp/ && git clone git://github.com/ivmai/bdwgc.git && cd bdwgc && git clone git://github.com/ivmai/libatomic_ops.git && ./autogen.sh && ./configure && make -j && make check && sudo make install
+    - cd $MY_BUILD_DIR
 
 language: c
-compiler: 
-    - clang
-    - gcc
+compiler: gcc
 
 script: make

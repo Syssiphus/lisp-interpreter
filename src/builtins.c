@@ -1,5 +1,6 @@
 
-#define _DEFAULT_SOURCE
+//#define _DEFAULT_SOURCE
+#define _BSD_SOURCE
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1847,7 +1848,10 @@ object *write_char_proc(object *arguments, object *env)
     else if (is_socket_object(port))
     {
         char c = get_character_value(character);
-        write(get_socket_fd(port), &c, 1); 
+        if (-1 == write(get_socket_fd(port), &c, 1))
+        {
+            return make_error("'write-char' error: %s", strerror(errno));
+        }
     }
     else
     {
@@ -1876,7 +1880,17 @@ object *read_char_proc(object *arguments, object *env)
 
     if (is_input_port_object(port))
     {
-        fread(&c, 1, 1, get_input_port_stream(port));
+        if (!fread(&c, 1, 1, get_input_port_stream(port)))
+        {
+            if (feof(get_input_port_stream(port)))
+            {
+                return make_error("'read-char' error: EOF");
+            }
+            if (ferror(get_input_port_stream(port)))
+            {
+                return make_error("'read-char' error: %s", strerror(errno));
+            }
+        }
     }
     else if (is_socket_object(port))
     {

@@ -1,5 +1,7 @@
 ## A tiny unfinished lisp interpreter
 
+[![Build Status](https://travis-ci.org/Syssiphus/lisp-interpreter.svg?branch=master)](https://travis-ci.org/Syssiphus/lisp-interpreter)
+
 The basis for this project were the articles by Peter Michaux (http://peter.michaux.ca/) about writing a bootstrap scheme interpreter, which source can still be found in the legacy_src directory.
 
 The interpreter is using 

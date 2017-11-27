@@ -8,11 +8,35 @@
 #include "init.h"
 #include "globals.h"
 
+#include "libgen.h"
+
 /* From environment.c */
 object *load_file(char *filename);
 
 int main(int argc, char** argv)
 {
+    const char * stdlibName = "stdlib.scm";
+    const char * programPath = dirname(argv[0]);
+    char * fullStdLibPath = NULL;
+
+    if (programPath == NULL)
+    {
+        perror("Error:");
+        return 1;
+    }
+
+    fullStdLibPath = malloc(strlen(stdlibName) + strlen(programPath) + 2);
+
+    if (fullStdLibPath == NULL)
+    {
+        fprintf(stderr, "Error allocating memory.\n");
+        return 1;
+    }
+
+    sprintf(fullStdLibPath, "%s/%s", programPath, stdlibName);
+
+    fprintf(stdout, "Program path: '%s'", fullStdLibPath);
+
     fprintf(stdout, "Welcome to Scheme. (sort of, not really finished yet.)\n"
             "Written by B.Paschen (bpaschen@googlemail.com)\n"
             "Use Ctrl-C to exit.\n");
@@ -21,7 +45,7 @@ int main(int argc, char** argv)
     
     /* Read in the standard lib functions */
     fprintf(stdout, "Loading 'stdlib.scm'... ");
-    scheme_write(stdout, load_file("stdlib.scm"));
+    scheme_write(stdout, load_file(fullStdLibPath));
     putc('\n', stdout);
 
     while (1)
